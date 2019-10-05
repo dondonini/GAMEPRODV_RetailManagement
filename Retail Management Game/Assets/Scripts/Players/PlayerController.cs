@@ -47,7 +47,7 @@ public class PlayerController : MonoBehaviour
     private void OnMovementChanged(InputAction.CallbackContext context)
     {
         // Parse movement data
-
+        //if ()
         float directionX = movement.ReadValue<Vector2>().x;
         float directionY = movement.ReadValue<Vector2>().y;
 
@@ -93,7 +93,7 @@ public class PlayerController : MonoBehaviour
         Vector3 forward = transform.TransformDirection(Vector3.forward);
 
         // Move player
-        characterController.Move(forward * (playerDirection.magnitude * playerSpeed * Time.deltaTime));
+        characterController.SimpleMove(forward * (playerDirection.magnitude * playerSpeed * Time.deltaTime));
 
         
     }

@@ -47,7 +47,7 @@ public class GameplayControls : IInputActionCollection
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""2D Vector"",
+                    ""name"": ""Keyboard"",
                     ""id"": ""4b75600b-63fb-474b-b70d-6b7aab08c1b0"",
                     ""path"": ""2DVector"",
                     ""interactions"": """",
@@ -100,6 +100,17 @@ public class GameplayControls : IInputActionCollection
                     ""action"": ""Movement"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c36933fa-1163-409f-910a-a87bcc24cf0b"",
+                    ""path"": ""<Gamepad>/leftStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Movement"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
