@@ -32,13 +32,51 @@ public class GameplayControls : IInputActionCollection
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """"
+                },
+                {
+                    ""name"": ""Interact"",
+                    ""type"": ""Button"",
+                    ""id"": ""0ef12838-8315-4082-89a5-eea75838d70e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """"
+                },
+                {
+                    ""name"": ""Emote"",
+                    ""type"": ""Button"",
+                    ""id"": ""e0600e0f-c209-4497-99ac-0fadfb929d58"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """"
                 }
             ],
             ""bindings"": [
                 {
                     ""name"": """",
                     ""id"": ""4a9380cc-e120-4bc7-a058-8937aed3fc8a"",
-                    ""path"": ""<Keyboard>/space"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Pickup"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3c55450e-8598-48db-ab90-65320c29ab3a"",
+                    ""path"": ""<XInputController>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Pickup"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0120b852-afea-4178-abf1-60174fe4b3ab"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -111,6 +149,72 @@ public class GameplayControls : IInputActionCollection
                     ""action"": ""Movement"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""1743e970-810f-4e8f-a657-f8e5b47552f9"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bd443b1c-4309-4c82-a39a-03c542dc5f2a"",
+                    ""path"": ""<XInputController>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5ee6f1f1-7654-432e-8711-528caff59190"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e967980b-4896-4efe-9f4e-58f61426246b"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Emote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8addfab6-5357-486a-a740-07e92d528a48"",
+                    ""path"": ""<XInputController>/buttonNorth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Emote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8ac30852-a5da-46cf-8319-ad6a45f258ee"",
+                    ""path"": ""<Gamepad>/buttonNorth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Emote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -121,6 +225,8 @@ public class GameplayControls : IInputActionCollection
         m_Default = asset.FindActionMap("Default", throwIfNotFound: true);
         m_Default_Pickup = m_Default.FindAction("Pickup", throwIfNotFound: true);
         m_Default_Movement = m_Default.FindAction("Movement", throwIfNotFound: true);
+        m_Default_Interact = m_Default.FindAction("Interact", throwIfNotFound: true);
+        m_Default_Emote = m_Default.FindAction("Emote", throwIfNotFound: true);
     }
 
     ~GameplayControls()
@@ -172,12 +278,16 @@ public class GameplayControls : IInputActionCollection
     private IDefaultActions m_DefaultActionsCallbackInterface;
     private readonly InputAction m_Default_Pickup;
     private readonly InputAction m_Default_Movement;
+    private readonly InputAction m_Default_Interact;
+    private readonly InputAction m_Default_Emote;
     public struct DefaultActions
     {
         private GameplayControls m_Wrapper;
         public DefaultActions(GameplayControls wrapper) { m_Wrapper = wrapper; }
         public InputAction @Pickup => m_Wrapper.m_Default_Pickup;
         public InputAction @Movement => m_Wrapper.m_Default_Movement;
+        public InputAction @Interact => m_Wrapper.m_Default_Interact;
+        public InputAction @Emote => m_Wrapper.m_Default_Emote;
         public InputActionMap Get() { return m_Wrapper.m_Default; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -193,6 +303,12 @@ public class GameplayControls : IInputActionCollection
                 Movement.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
                 Movement.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
                 Movement.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
+                Interact.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
+                Interact.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
+                Interact.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
+                Emote.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
+                Emote.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
+                Emote.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
             }
             m_Wrapper.m_DefaultActionsCallbackInterface = instance;
             if (instance != null)
@@ -203,6 +319,12 @@ public class GameplayControls : IInputActionCollection
                 Movement.started += instance.OnMovement;
                 Movement.performed += instance.OnMovement;
                 Movement.canceled += instance.OnMovement;
+                Interact.started += instance.OnInteract;
+                Interact.performed += instance.OnInteract;
+                Interact.canceled += instance.OnInteract;
+                Emote.started += instance.OnEmote;
+                Emote.performed += instance.OnEmote;
+                Emote.canceled += instance.OnEmote;
             }
         }
     }
@@ -211,5 +333,7 @@ public class GameplayControls : IInputActionCollection
     {
         void OnPickup(InputAction.CallbackContext context);
         void OnMovement(InputAction.CallbackContext context);
+        void OnInteract(InputAction.CallbackContext context);
+        void OnEmote(InputAction.CallbackContext context);
     }
 }

@@ -19,6 +19,9 @@ public class PlayerController : MonoBehaviour
     [Header("Links")]
     [SerializeField] Camera currentCamera;
     [SerializeField] CharacterController characterController;
+    [SerializeField] Transform holdPosition;
+
+    // Internal Variables
     Vector3 playerDirection = Vector3.zero;
 
     private void Awake()
@@ -29,8 +32,6 @@ public class PlayerController : MonoBehaviour
         movement = gameplayControls.Default.Movement;
         movement.performed += OnMovementChanged;
         movement.canceled += OnMovementChanged;
-
-
     }
 
     private void OnEnable()
@@ -47,7 +48,6 @@ public class PlayerController : MonoBehaviour
     private void OnMovementChanged(InputAction.CallbackContext context)
     {
         // Parse movement data
-        //if ()
         float directionX = movement.ReadValue<Vector2>().x;
         float directionY = movement.ReadValue<Vector2>().y;
 
@@ -78,23 +78,24 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void UpdatePlayer()
     {
-        // Calculate relative camera
+        // Calculate relative camera direction
         Vector3 relativeDirection = currentCamera.transform.TransformVector(playerDirection);
         relativeDirection.Scale(Vector3.forward + Vector3.right);
 
-        // Rotate player
-        characterController.transform.LookAt(
-            Vector3.Lerp(characterController.transform.position + characterController.transform.forward, 
-            characterController.transform.position + relativeDirection, 
+        // Ease rotation
+        Vector3 rotationResult = Vector3.Lerp(
+            characterController.transform.position + characterController.transform.forward,
+            characterController.transform.position + relativeDirection,
             playerRotationSpeed
-            ));
+        );
+
+        // Rotate player
+        characterController.transform.LookAt(rotationResult);
 
         // Get player forward vector
         Vector3 forward = transform.TransformDirection(Vector3.forward);
 
         // Move player
         characterController.SimpleMove(forward * (playerDirection.magnitude * playerSpeed * Time.deltaTime));
-
-        
     }
 }
