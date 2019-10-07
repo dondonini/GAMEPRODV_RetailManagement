@@ -10,19 +10,26 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float playerSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
     [SerializeField] float playerRotationSpeed = 1.0f;
+    [Range(45.0f, 180.0f)]
+    [SerializeField] float playerPickupAngle = 90.0f;
+    [SerializeField] int playerDoubleTapMilliseconds = 100;
 
     [Space]
     [Header("Control Map")]
     [SerializeField] InputAction movement;
+    [SerializeField] InputAction pickup;
 
     [Space]
     [Header("Links")]
     [SerializeField] Camera currentCamera;
     [SerializeField] CharacterController characterController;
-    [SerializeField] Transform holdPosition;
+    [SerializeField] Transform equippedPosition;
+    GameObject equippedItem;
 
     // Internal Variables
     Vector3 playerDirection = Vector3.zero;
+    float dashTapTimer = 0.0f;
+    int dashTapCount = 0;
 
     private void Awake()
     {
@@ -32,6 +39,9 @@ public class PlayerController : MonoBehaviour
         movement = gameplayControls.Default.Movement;
         movement.performed += OnMovementChanged;
         movement.canceled += OnMovementChanged;
+
+        pickup = gameplayControls.Default.Pickup;
+        pickup.performed += OnPickupChanged;
     }
 
     private void OnEnable()
@@ -47,11 +57,33 @@ public class PlayerController : MonoBehaviour
 
     private void OnMovementChanged(InputAction.CallbackContext context)
     {
+        Vector2 movementVector = movement.ReadValue<Vector2>();
+
         // Parse movement data
-        float directionX = movement.ReadValue<Vector2>().x;
-        float directionY = movement.ReadValue<Vector2>().y;
+        float directionX = movementVector.x;
+        float directionY = movementVector.y;
+
+        // Check if input device is the keyboard
+        if (context.control.device.name == "Keyboard")
+        {
+            // Detect if change is not cancelled
+            if (movementVector.magnitude > 0.0f)
+            {
+                if (dashTapTimer > 0.0f)
+                {
+                    dashTapCount++;
+                }
+
+                dashTapTimer = playerDoubleTapMilliseconds / 1000.0f;
+            }
+        }
 
         playerDirection = new Vector3(directionX, 0.0f, directionY);
+    }
+
+    private void OnPickupChanged(InputAction.CallbackContext context)
+    {
+        throw new NotImplementedException();
     }
 
     #endregion
@@ -70,6 +102,17 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Decrease dash timer for multi tap detection
+        if (dashTapTimer > 0.0f)
+        {
+            dashTapTimer -= Time.deltaTime;
+        }
+        else if (dashTapTimer < 0.0f)
+        {
+            dashTapTimer = 0.0f;
+            dashTapCount = 0;
+        }
+
         UpdatePlayer();
     }
 

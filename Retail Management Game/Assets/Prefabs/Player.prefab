@@ -181,7 +181,7 @@ GameObject:
   - component: {fileID: 80941731651640500}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -234,6 +234,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerSpeed: 100
   playerRotationSpeed: 0.2
+  playerPickupAngle: 90
+  playerDoubleTapMilliseconds: 500
   movement:
     m_Name: Movement
     m_Type: 0
@@ -242,9 +244,17 @@ MonoBehaviour:
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
+  pickup:
+    m_Name: 
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
   currentCamera: {fileID: 0}
   characterController: {fileID: 80941731651640506}
-  holdPosition: {fileID: 80941731740347156}
+  equippedPosition: {fileID: 80941731740347156}
 --- !u!1 &80941731740347163
 GameObject:
   m_ObjectHideFlags: 0

@@ -48,6 +48,14 @@ public class GameplayControls : IInputActionCollection
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """"
+                },
+                {
+                    ""name"": ""Dash"",
+                    ""type"": ""Button"",
+                    ""id"": ""9c2ad52d-680d-4100-8c38-0904177d1c93"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """"
                 }
             ],
             ""bindings"": [
@@ -215,6 +223,28 @@ public class GameplayControls : IInputActionCollection
                     ""action"": ""Emote"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bfc4e979-423e-4331-a848-e667b9b7713c"",
+                    ""path"": ""<XInputController>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e9e08e6c-b09c-49c6-af30-5da979858214"",
+                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -227,6 +257,7 @@ public class GameplayControls : IInputActionCollection
         m_Default_Movement = m_Default.FindAction("Movement", throwIfNotFound: true);
         m_Default_Interact = m_Default.FindAction("Interact", throwIfNotFound: true);
         m_Default_Emote = m_Default.FindAction("Emote", throwIfNotFound: true);
+        m_Default_Dash = m_Default.FindAction("Dash", throwIfNotFound: true);
     }
 
     ~GameplayControls()
@@ -280,6 +311,7 @@ public class GameplayControls : IInputActionCollection
     private readonly InputAction m_Default_Movement;
     private readonly InputAction m_Default_Interact;
     private readonly InputAction m_Default_Emote;
+    private readonly InputAction m_Default_Dash;
     public struct DefaultActions
     {
         private GameplayControls m_Wrapper;
@@ -288,6 +320,7 @@ public class GameplayControls : IInputActionCollection
         public InputAction @Movement => m_Wrapper.m_Default_Movement;
         public InputAction @Interact => m_Wrapper.m_Default_Interact;
         public InputAction @Emote => m_Wrapper.m_Default_Emote;
+        public InputAction @Dash => m_Wrapper.m_Default_Dash;
         public InputActionMap Get() { return m_Wrapper.m_Default; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -309,6 +342,9 @@ public class GameplayControls : IInputActionCollection
                 Emote.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
                 Emote.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
                 Emote.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
+                Dash.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
+                Dash.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
+                Dash.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
             }
             m_Wrapper.m_DefaultActionsCallbackInterface = instance;
             if (instance != null)
@@ -325,6 +361,9 @@ public class GameplayControls : IInputActionCollection
                 Emote.started += instance.OnEmote;
                 Emote.performed += instance.OnEmote;
                 Emote.canceled += instance.OnEmote;
+                Dash.started += instance.OnDash;
+                Dash.performed += instance.OnDash;
+                Dash.canceled += instance.OnDash;
             }
         }
     }
@@ -335,5 +374,6 @@ public class GameplayControls : IInputActionCollection
         void OnMovement(InputAction.CallbackContext context);
         void OnInteract(InputAction.CallbackContext context);
         void OnEmote(InputAction.CallbackContext context);
+        void OnDash(InputAction.CallbackContext context);
     }
 }
