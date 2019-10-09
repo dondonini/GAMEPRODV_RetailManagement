@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1067705169984331008}
   - component: {fileID: 1641269376438574167}
   - component: {fileID: 6308714895480173225}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: TempModel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -124,6 +124,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_TagString
       value: Product
+      objectReference: {fileID: 0}
+    - target: {fileID: 5213172409423003052, guid: 0c76ce454d7b4c64caed28faa05e1d69,
+        type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6112695700716027378, guid: 0c76ce454d7b4c64caed28faa05e1d69,
+        type: 3}
+      propertyPath: stockType
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5213172409423003051, guid: 0c76ce454d7b4c64caed28faa05e1d69,
         type: 3}

@@ -3,6 +3,7 @@
 /// </summary>
 public enum StockTypes
 {
+    None,
     Pencil,
     Erasers,
     Staplers,
