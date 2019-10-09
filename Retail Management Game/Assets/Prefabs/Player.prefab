@@ -154,7 +154,7 @@ MonoBehaviour:
     m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: 
+    m_Id: 2b8e1cd8-adaa-40ba-8377-c3ee7877ce80
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
@@ -162,7 +162,7 @@ MonoBehaviour:
     m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: 
+    m_Id: dcaffaf5-af94-4e74-ba4e-4a60ade5f2dc
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []

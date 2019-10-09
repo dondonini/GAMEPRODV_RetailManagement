@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 5213172409423003051}
   - component: {fileID: 6112695700716027378}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Stock
-  m_TagString: Untagged
+  m_TagString: Product
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -44,3 +44,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stockType: 0
+  stockAmount: 0

@@ -7,6 +7,8 @@ using UnityEngine.InputSystem.Controls;
 
 public class PlayerController : MonoBehaviour
 {
+
+    /************************************************/
     [Header("Player Adjustments")]
     [SerializeField] float playerSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
@@ -24,6 +26,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] int playerHoldThreshold = 125;
 
     [Space]
+    /************************************************/
     [Header("Control Map")]
     [SerializeField] InputAction c_movement;
     [SerializeField] InputAction c_pickup;
@@ -36,6 +39,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] BoxCollider pickupArea;
     GameObject equippedItem;
 
+    /************************************************/
     // Internal Variables
     Vector3 playerDirection = Vector3.zero;
     float dashTapTimer = 0.0f;
@@ -94,8 +98,8 @@ public class PlayerController : MonoBehaviour
         c_pickup.Disable();
     }
 
+    /************************************************/
     #region OnChanged Events
-
     private void OnMovementChanged(InputAction.CallbackContext context)
     {
         Vector2 movementVector = c_movement.ReadValue<Vector2>();
@@ -137,10 +141,12 @@ public class PlayerController : MonoBehaviour
             // Check if player is already holding an item
             if (!equippedItem)
             {
+                GameObject closestInteractable = GetClosestInteractable();
                 // Fill equip slot
-                if (PickupItem())
+                if (closestInteractable && closestInteractable.CompareTag("Product"))
                 {
                     justPickedUp = true;
+                    EquipItem(closestInteractable.transform);
                 }
             }
             else
@@ -286,10 +292,18 @@ public class PlayerController : MonoBehaviour
             characterController.SimpleMove(forward * (playerDirection.magnitude * playerSpeed * Time.deltaTime));
     }
 
-    private bool PickupItem()
+    /************************************************/
+    // Item interaction methods
+
+    private GameObject GetClosestInteractable()
     {
         // Get all items in pickup area
-        Collider[] inPickupArea = Physics.OverlapBox(pickupArea.transform.position, pickupArea.size, pickupArea.transform.rotation);
+        Collider[] inPickupArea = Physics.OverlapBox(
+            pickupArea.transform.position, 
+            pickupArea.size, 
+            pickupArea.transform.rotation, 
+            LayerMask.GetMask("Interactive")
+        );
 
         // Items in pickup area that is also in player view angle
         List<Transform> validItems = new List<Transform>();
@@ -306,28 +320,37 @@ public class PlayerController : MonoBehaviour
 
             //Debug.Log("Item: " + c.gameObject + " Angle: " + targetAngleFromPlayer + " Distance: " + targetDistanceFromPlayer);
 
-                
+
             // Item is in player view and is not too far
             if (Math.Abs(targetAngleFromPlayer) < playerPickupAngle * 0.5f ||
                 targetDistanceFromPlayer < playerMaxDistance)
             {
-                // Skip self and items without the tag "Product"
-                if (c.transform == transform)
+                // Skip self and if item is equipped
+                if (c.transform == transform || c.transform.parent == equippedPosition)
                     continue;
 
                 // Check if StockItem is an existing component in root of item
-                StockItem stockItem = c.transform.GetComponentInParent<StockItem>();
-                if (stockItem)
+                StockItem stockComponent = c.transform.GetComponentInParent<StockItem>();
+                if (stockComponent)
                 {
                     // Add to valid list
-                    validItems.Add(stockItem.transform);
+                    validItems.Add(stockComponent.transform);
+                    continue;
+                }
+
+                ShelfContainer shelfComponent = c.transform.GetComponentInParent<ShelfContainer>();
+                if (shelfComponent)
+                {
+                    // Add to valid list
+                    validItems.Add(shelfComponent.transform);
+                    continue;
                 }
             }
         }
 
         // Stop code if there are no valid items in list
         if (validItems.Count == 0)
-            return false;
+            return null;
 
         // Calculate the closest item from player
         Transform closestItem = validItems[0];
@@ -349,10 +372,8 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Equip closest item
-        EquipItem(closestItem);
-
-        return true;
+        // Return the closest item
+        return closestItem.gameObject;
     }
 
     private void ThrowItem()
