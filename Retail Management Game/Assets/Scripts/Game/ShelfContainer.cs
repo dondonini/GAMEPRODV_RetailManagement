@@ -8,6 +8,52 @@ public class ShelfContainer : MonoBehaviour
     [SerializeField] private int stockAmount = 0;
     [SerializeField] private int shelfSize = 10;
 
+    [Header("Pickup Faces")]
+    [Rename("Front")]
+    [SerializeField] private bool allowPickup_F = true;
+    [Rename("Back")]
+    [SerializeField] private bool allowPickup_B = false;
+    [Rename("Left")]
+    [SerializeField] private bool allowPickup_L = false;
+    [Rename("Right")]
+    [SerializeField] private bool allowPickup_R = false;
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(0.0f, 1.0f, 0.0f, 0.1f);
+
+        Bounds boundsOfSelf = EssentialFunctions.GetMaxBounds(gameObject);
+
+        if (allowPickup_F)
+        {
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * 0.5f), new Vector3(boundsOfSelf.size.x, boundsOfSelf.size.y, 0.0f));
+        }
+
+        if (allowPickup_B)
+        {
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * -0.5f), new Vector3(boundsOfSelf.size.x, boundsOfSelf.size.y, 0.0f));
+        }
+
+        if (allowPickup_L)
+        {
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * -0.5f), new Vector3(0.0f, boundsOfSelf.size.y, boundsOfSelf.size.z));
+        }
+
+        if (allowPickup_R)
+        {
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * 0.5f), new Vector3(0.0f, boundsOfSelf.size.y, boundsOfSelf.size.z));
+        }
+    }
+
+    private void OnValidate()
+    {
+        // Always have at least one face available for pickup
+        if (!allowPickup_F && !allowPickup_B && !allowPickup_L && !allowPickup_R)
+        {
+            allowPickup_F = true;
+        }
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -95,5 +141,36 @@ public class ShelfContainer : MonoBehaviour
             amount = 0;
 
         }
+    }
+
+    /// <summary>
+    /// Returns pickup positions
+    /// </summary>
+    /// <returns></returns>
+    public Vector3[] GetPickupPosition()
+    {
+        List<Vector3> pickupPositions = new List<Vector3>();
+
+        if (allowPickup_F)
+        {
+            pickupPositions.Add(transform.position + transform.forward);
+        }
+
+        if (allowPickup_B)
+        {
+            pickupPositions.Add(transform.position + -transform.forward);
+        }
+
+        if (allowPickup_L)
+        {
+            pickupPositions.Add(transform.position + -transform.right);
+        }
+
+        if (allowPickup_R)
+        {
+            pickupPositions.Add(transform.position + transform.right);
+        }
+
+        return pickupPositions.ToArray();
     }
 }

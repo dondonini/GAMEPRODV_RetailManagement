@@ -139,6 +139,10 @@ MonoBehaviour:
   shelfStockType: 0
   stockAmount: 0
   shelfSize: 10
+  allowPickup_F: 1
+  allowPickup_B: 0
+  allowPickup_L: 0
+  allowPickup_R: 0
 --- !u!65 &8622118078868412650
 BoxCollider:
   m_ObjectHideFlags: 0

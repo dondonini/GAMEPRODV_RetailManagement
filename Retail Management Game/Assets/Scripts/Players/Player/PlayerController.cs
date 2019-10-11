@@ -10,27 +10,22 @@ public class PlayerController : MonoBehaviour
 
     /************************************************/
     [Header("Player Adjustments")]
-    [SerializeField] float playerSpeed = 10.0f;
+    [SerializeField] float movmentSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
-    [SerializeField] float playerRotationSpeed = 1.0f;
+    [SerializeField] float rotationSpeed = 1.0f;
     [Range(45.0f, 180.0f)]
-    [SerializeField] float playerPickupAngle = 90.0f;
-    [SerializeField] float playerMaxDistance = 2.0f;
+    [SerializeField] float pickupAngle = 90.0f;
+    [SerializeField] float maxPickupDistance = 2.0f;
     [Tooltip("The amount of force when throwing your equipped item.")]
-    [SerializeField] float playerThrowPower = 100.0f;
+    [SerializeField] float throwPower = 100.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
-    [SerializeField] float playerPushPower = 2.0f;
+    [SerializeField] float pushPower = 2.0f;
     [Tooltip("The gap between button presses until it detects a double tap.")]
-    [SerializeField] int playerDoubleTap = 100;
+    [SerializeField] int doubleTapThreshold = 100;
     [Tooltip("How long you have to hold the drop button until it turns into a throw action in milliseconds.")]
-    [SerializeField] int playerHoldThreshold = 125;
+    [SerializeField] int holdThreshold = 125;
 
-    [Space]
     /************************************************/
-    [Header("Control Map")]
-    [SerializeField] InputAction c_movement;
-    [SerializeField] InputAction c_pickup;
-
     [Space]
     [Header("Links")]
     [SerializeField] Camera currentCamera;
@@ -41,12 +36,16 @@ public class PlayerController : MonoBehaviour
 
     /************************************************/
     // Internal Variables
+    InputAction c_movement;
+    InputAction c_pickup;
+
     Vector3 playerDirection = Vector3.zero;
     float dashTapTimer = 0.0f;
     int dashTapCount = 0;
     float throwHoldTimer = 0.0f;
     bool throwItem = false;
     bool justPickedUp = false;
+    GameObject closestInteractible = null;
 
     private void OnDrawGizmosSelected()
     {
@@ -59,15 +58,15 @@ public class PlayerController : MonoBehaviour
 
     private void OnValidate()
     {
-        if (playerHoldThreshold < 125)
+        if (holdThreshold < 125)
         {
-            playerHoldThreshold = 125;
+            holdThreshold = 125;
         }
 
 
-        float boxSizeDepth = playerMaxDistance;
+        float boxSizeDepth = maxPickupDistance;
         float boxSizeHeight = 2.0f;
-        float boxSizeWidth = playerMaxDistance * Mathf.Sin(playerPickupAngle);
+        float boxSizeWidth = maxPickupDistance * Mathf.Sin(pickupAngle);
 
         pickupArea.size = new Vector3(boxSizeWidth * 2.0f, boxSizeHeight, boxSizeDepth);
         pickupArea.transform.localPosition = new Vector3(0.0f, 0.0f, 1.0f + (boxSizeDepth * 0.5f));
@@ -119,7 +118,7 @@ public class PlayerController : MonoBehaviour
                     dashTapCount++;
                 }
 
-                dashTapTimer = playerDoubleTap / 1000.0f;
+                dashTapTimer = doubleTapThreshold / 1000.0f;
             }
         }
 
@@ -141,7 +140,10 @@ public class PlayerController : MonoBehaviour
             // Check if player is already holding an item
             if (!equippedItem)
             {
-                GameObject closestInteractable = GetClosestInteractable();
+                string[] tagsToScan = { "Product", "Shelf" };
+                GameObject[] excludedGameObjects = { gameObject, equippedItem };
+
+                GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
                 // Fill equip slot
                 if (closestInteractable && closestInteractable.CompareTag("Product"))
                 {
@@ -152,7 +154,7 @@ public class PlayerController : MonoBehaviour
             else
             {
                 // Start throw timer
-                throwHoldTimer = playerHoldThreshold / 1000.0f;
+                throwHoldTimer = holdThreshold / 1000.0f;
             }
         }
         else
@@ -213,7 +215,7 @@ public class PlayerController : MonoBehaviour
          */
 
         // Apply the push
-        body.velocity = pushDir * (characterController.velocity.magnitude * playerPushPower);
+        body.velocity = pushDir * (characterController.velocity.magnitude * pushPower);
     }
 
     #endregion
@@ -258,6 +260,8 @@ public class PlayerController : MonoBehaviour
             }
         }
         #endregion
+
+        //closestInteractible = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance);
     }
 
     private void FixedUpdate()
@@ -278,7 +282,7 @@ public class PlayerController : MonoBehaviour
         Vector3 rotationResult = Vector3.Lerp(
             characterController.transform.position + characterController.transform.forward,
             characterController.transform.position + relativeDirection,
-            playerRotationSpeed
+            rotationSpeed
         );
 
         // Rotate player
@@ -289,7 +293,7 @@ public class PlayerController : MonoBehaviour
 
         // Only move the player if you're not throwing an item
         if (!throwItem)
-            characterController.SimpleMove(forward * (playerDirection.magnitude * playerSpeed * Time.deltaTime));
+            characterController.SimpleMove(forward * (playerDirection.magnitude * movmentSpeed * Time.deltaTime));
     }
 
     /************************************************/
@@ -322,8 +326,8 @@ public class PlayerController : MonoBehaviour
 
 
             // Item is in player view and is not too far
-            if (Math.Abs(targetAngleFromPlayer) < playerPickupAngle * 0.5f ||
-                targetDistanceFromPlayer < playerMaxDistance)
+            if (Math.Abs(targetAngleFromPlayer) < pickupAngle * 0.5f ||
+                targetDistanceFromPlayer < maxPickupDistance)
             {
                 // Skip self and if item is equipped
                 if (c.transform == transform || c.transform.parent == equippedPosition)
@@ -387,7 +391,7 @@ public class PlayerController : MonoBehaviour
         UnequipItem();
 
         // THROW DAT THING!
-        itemToThrow.transform.GetComponent<Rigidbody>().AddForce(transform.forward * (characterController.velocity.magnitude + playerThrowPower));
+        itemToThrow.transform.GetComponent<Rigidbody>().AddForce(transform.forward * (characterController.velocity.magnitude + throwPower));
     }
 
     private void EquipItem(Transform item)
