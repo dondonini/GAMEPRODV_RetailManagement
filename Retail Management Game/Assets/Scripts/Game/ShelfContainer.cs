@@ -9,14 +9,27 @@ public class ShelfContainer : MonoBehaviour
     [SerializeField] private int shelfSize = 10;
 
     [Header("Pickup Faces")]
+
     [Rename("Front")]
     [SerializeField] private bool allowPickup_F = true;
+
     [Rename("Back")]
     [SerializeField] private bool allowPickup_B = false;
+
     [Rename("Left")]
     [SerializeField] private bool allowPickup_L = false;
+
     [Rename("Right")]
     [SerializeField] private bool allowPickup_R = false;
+
+    const float collisionSensitivity = 2.0f;
+
+    Vector3[] pickupPositions = null;
+
+    const float stuckObjectMaxTime = 1.0f;
+    Dictionary<Transform, float> stuckObjects = new Dictionary<Transform, float>();
+
+    MapManager mapManager;
 
     private void OnDrawGizmosSelected()
     {
@@ -52,36 +65,98 @@ public class ShelfContainer : MonoBehaviour
         {
             allowPickup_F = true;
         }
+
+        UpdatePickupPositionsArray();
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        ContactPoint contact = collision.GetContact(0);
+
+        GameObject other = contact.otherCollider.transform.root.gameObject;
+
+        Debug.Log(collision.relativeVelocity.magnitude);
+
+        // Add products to the shelf if it hits it hard enough
+        if (collision.relativeVelocity.magnitude < collisionSensitivity) return;
+
+        if (other.CompareTag("Product"))
+        {
+            int result = AddStock(other.GetComponent<StockItem>().GetStockType());
+            
+            if (result == 0)
+                Destroy(other);
+        }
+    }
+
+    private void OnCollisionStay(Collision collision)
+    {
+        foreach(ContactPoint contactPoint in collision.contacts)
+        {
+            Transform other = contactPoint.otherCollider.transform.root;
+
+            if (other == stuckObjects.ContainsKey(other))
+            {
+                float timer = 0.0f;
+                stuckObjects.TryGetValue(other, out timer);
+
+                if (timer <= 0.0f)
+                {
+                    Debug.Log("LOL! " + other + " is stuck in " + transform + "! XD");
+                }
+                else
+                {
+                    //stuckObjects.
+                }
+            }
+        }
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        UpdatePickupPositionsArray();
+
+        // Get MapManager
+        mapManager = MapManager.GetInstance();
     }
 
-    public void SetShelfStockType(StockTypes stockType)
+    public StockTypes ShelfStockType
     {
-        shelfStockType = stockType;
+        get
+        {
+            return shelfStockType;
+        }
+        set
+        {
+            shelfStockType = value;
+            if (value == StockTypes.None)
+            {
+                EmptyShelf();
+            }
+        }
     }
 
-    public StockTypes GetShelfStockType()
+    public int MaxShelfAmount()
     {
-        return shelfStockType;
+        return shelfSize;
+    }
+
+    public int StockAmount()
+    {
+        return stockAmount;
     }
 
     void EmptyShelf()
     {
-        if (stockAmount == 0)
-        {
-            shelfStockType = StockTypes.None;
-        }
+        stockAmount = 0;
+        ShelfStockType = StockTypes.None;
     }
 
     public int GetStock(int amount = 1)
     {
         // Check if there's stock to give
-        if (stockAmount == 0)
+        if (IsEmpty())
         {
             // Shelf is empty - give nothing
             return 0;
@@ -95,40 +170,49 @@ public class ShelfContainer : MonoBehaviour
         }
         else
         {
+            stockAmount -= amount;
             // Shelf has enough stock requested - give amount
             return amount;
         }
     }
 
-    public void AddStock(ref int amount, StockTypes stockType)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="amount">The amount of stock to add onto shelf</param>
+    /// <param name="stockType">The stock type that is being added to the shelf</param>
+    /// <returns>The remainder</returns>
+    public int AddStock(int amount, StockTypes stockType)
     {
+        int tempAmount = amount;
+
         // If this ever happens, you're actually dumb
-        if (amount <= 0)
+        if (tempAmount <= 0)
         {
             Debug.LogWarning("Uhhhhh... why are you adding nothing to the shelf? Tf?");
         }
 
         // Check if shelf has stock already
-        if (shelfStockType == StockTypes.None)
+        if (ShelfStockType == StockTypes.None)
         {
             // Apply new stock type
-            shelfStockType = stockType;
+            ShelfStockType = stockType;
         }
 
-        // Check if existing shelf stock matching what you're adding
-        else if (stockType != shelfStockType)
+        // Check if existing shelf stock doesn't match what you're adding
+        else if (stockType != ShelfStockType)
         {
             // Stocks do not match! - do nothing
-            return;
+            return tempAmount;
         }
 
         // Check if there's enough space to add amount of stock
-        if (amount > shelfSize)
+        if (tempAmount > shelfSize)
         {
             // Add max of shelf
 
             // Remove amount
-            amount -= shelfSize;
+            tempAmount -= shelfSize;
 
             // Max out shelf
             stockAmount = shelfSize;
@@ -136,41 +220,68 @@ public class ShelfContainer : MonoBehaviour
         else
         {
             // Add amount
-            stockAmount += amount;
+            stockAmount += tempAmount;
 
-            amount = 0;
-
+            tempAmount = 0;
         }
+
+        mapManager.UpdateAvailableStockTypes();
+
+        return tempAmount;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="stockType">The stock type that is being added to the shelf</param>
+    /// <returns>The remainder</returns>
+    public int AddStock(StockTypes stockType)
+    {
+        return AddStock(1, stockType);
+    }
+
+    /// <summary>
+    /// Update pickup positions
+    /// </summary>
+    void UpdatePickupPositionsArray()
+    {
+        List<Vector3> foundPositions = new List<Vector3>();
+
+        if (allowPickup_F)
+        {
+            foundPositions.Add(transform.position + transform.forward);
+        }
+
+        if (allowPickup_B)
+        {
+            foundPositions.Add(transform.position + -transform.forward);
+        }
+
+        if (allowPickup_L)
+        {
+            foundPositions.Add(transform.position + -transform.right);
+        }
+
+        if (allowPickup_R)
+        {
+            foundPositions.Add(transform.position + transform.right);
+        }
+
+        pickupPositions = null;
+        pickupPositions = foundPositions.ToArray();
     }
 
     /// <summary>
     /// Returns pickup positions
     /// </summary>
     /// <returns></returns>
-    public Vector3[] GetPickupPosition()
+    public Vector3[] GetPickupPositions()
     {
-        List<Vector3> pickupPositions = new List<Vector3>();
+        return pickupPositions;
+    }
 
-        if (allowPickup_F)
-        {
-            pickupPositions.Add(transform.position + transform.forward);
-        }
-
-        if (allowPickup_B)
-        {
-            pickupPositions.Add(transform.position + -transform.forward);
-        }
-
-        if (allowPickup_L)
-        {
-            pickupPositions.Add(transform.position + -transform.right);
-        }
-
-        if (allowPickup_R)
-        {
-            pickupPositions.Add(transform.position + transform.right);
-        }
-
-        return pickupPositions.ToArray();
+    public bool IsEmpty()
+    {
+        return stockAmount == 0;
     }
 }

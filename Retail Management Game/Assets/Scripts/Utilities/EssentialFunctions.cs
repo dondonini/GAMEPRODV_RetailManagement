@@ -14,6 +14,44 @@ public static class EssentialFunctions
         return b;
     }
 
+    public static Vector3[] GetAllCornersOfTransform(Transform t)
+    {
+        Vector3[] corners = new Vector3[8];
+
+        /************************************************/
+        // Top Vectors
+
+        // Back Left
+        corners[0] = t.position + (new Vector3(-t.localScale.x, t.localScale.y, t.localScale.z)     * 0.5f);
+
+        // Back Right
+        corners[1] = t.position + (new Vector3(t.localScale.x, t.localScale.y, t.localScale.z)      * 0.5f);
+
+        // Front Left
+        corners[2] = t.position + (new Vector3(-t.localScale.x, t.localScale.y, -t.localScale.z)    * 0.5f);
+
+        // Front Right
+        corners[3] = t.position + (new Vector3(t.localScale.x, t.localScale.y, -t.localScale.z)     * 0.5f);
+
+
+        /************************************************/
+        // Bottom Vectors
+
+        // Back Left
+        corners[4] = t.position + (new Vector3(-t.localScale.x, -t.localScale.y, t.localScale.z)    * 0.5f);
+
+        // Back Right
+        corners[5] = t.position + (new Vector3(t.localScale.x, -t.localScale.y, t.localScale.z)     * 0.5f);
+
+        // Front Left
+        corners[6] = t.position + (new Vector3(-t.localScale.x, -t.localScale.y, -t.localScale.z)   * 0.5f);
+
+        // Front Right
+        corners[7] = t.position + (new Vector3(t.localScale.x, -t.localScale.y, -t.localScale.z)    * 0.5f);
+
+        return corners;
+    }
+
     public static Component GetComponentMultiType(this GameObject source, Component[] components)
     {
         foreach (Component c in components)
@@ -27,6 +65,7 @@ public static class EssentialFunctions
 
         return null;
     }
+
 
     public static GameObject GetClosestInteractableInFOV(Transform transform, BoxCollider area, float FOV, float maxDistance, string[] tags = null, GameObject[] excludedGameObjects = null)
     {

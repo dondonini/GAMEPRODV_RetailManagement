@@ -13,9 +13,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float movmentSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
     [SerializeField] float rotationSpeed = 1.0f;
-    [Range(45.0f, 180.0f)]
+    [Range(45.0f, 90.0f)]
     [SerializeField] float pickupAngle = 90.0f;
     [SerializeField] float maxPickupDistance = 2.0f;
+    [SerializeField] float maxShelfDistance = 0.5f;
     [Tooltip("The amount of force when throwing your equipped item.")]
     [SerializeField] float throwPower = 100.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
@@ -35,7 +36,7 @@ public class PlayerController : MonoBehaviour
     GameObject equippedItem;
 
     /************************************************/
-    // Internal Variables
+    // Runtime Variables
     InputAction c_movement;
     InputAction c_pickup;
 
@@ -47,13 +48,14 @@ public class PlayerController : MonoBehaviour
     bool justPickedUp = false;
     GameObject closestInteractible = null;
 
+    MapManager mapManager;
+
     private void OnDrawGizmosSelected()
     {
         // Show equip position
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(equippedPosition.position, 0.1f);
 
-        // Show pickup line
     }
 
     private void OnValidate()
@@ -63,13 +65,12 @@ public class PlayerController : MonoBehaviour
             holdThreshold = 125;
         }
 
-
         float boxSizeDepth = maxPickupDistance;
         float boxSizeHeight = 2.0f;
-        float boxSizeWidth = maxPickupDistance * Mathf.Sin(pickupAngle);
+        float boxSizeWidth = maxPickupDistance * Mathf.Sin(pickupAngle * Mathf.Deg2Rad);
 
         pickupArea.size = new Vector3(boxSizeWidth * 2.0f, boxSizeHeight, boxSizeDepth);
-        pickupArea.transform.localPosition = new Vector3(0.0f, 0.0f, 1.0f + (boxSizeDepth * 0.5f));
+        pickupArea.transform.localPosition = new Vector3(0.0f, 0.0f, boxSizeDepth * 0.5f);
     }
 
     private void Awake()
@@ -138,23 +139,14 @@ public class PlayerController : MonoBehaviour
         if (pickupButton.isPressed)
         {
             // Check if player is already holding an item
-            if (!equippedItem)
-            {
-                string[] tagsToScan = { "Product", "Shelf" };
-                GameObject[] excludedGameObjects = { gameObject, equippedItem };
-
-                GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
-                // Fill equip slot
-                if (closestInteractable && closestInteractable.CompareTag("Product"))
-                {
-                    justPickedUp = true;
-                    EquipItem(closestInteractable.transform);
-                }
-            }
-            else
+            if (equippedItem)
             {
                 // Start throw timer
                 throwHoldTimer = holdThreshold / 1000.0f;
+            }
+            else
+            {
+                Interact();
             }
         }
         else
@@ -173,6 +165,8 @@ public class PlayerController : MonoBehaviour
                 }
                 else
                 {
+                    Interact();
+
                     // You're lazy
                     UnequipItem();
                 }
@@ -223,7 +217,7 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        mapManager = MapManager.GetInstance();
     }
 
     // Update is called once per frame
@@ -299,85 +293,78 @@ public class PlayerController : MonoBehaviour
     /************************************************/
     // Item interaction methods
 
-    private GameObject GetClosestInteractable()
+    private void Interact()
     {
-        // Get all items in pickup area
-        Collider[] inPickupArea = Physics.OverlapBox(
-            pickupArea.transform.position, 
-            pickupArea.size, 
-            pickupArea.transform.rotation, 
-            LayerMask.GetMask("Interactive")
-        );
+        string[] tagsToScan = { "Product", "Shelf" };
+        GameObject[] excludedGameObjects = { gameObject, equippedItem };
 
-        // Items in pickup area that is also in player view angle
-        List<Transform> validItems = new List<Transform>();
+        GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
 
-        //Debug.Log("There are " + inPickupArea.Length + " items in the pickup area.");
-
-        // Collect all items in pickup area and check if they are valid
-        foreach (Collider c in inPickupArea)
+        if (closestInteractable)
         {
-            // Calculate angle of item in pickup area from player
-            Vector3 targetDir = c.transform.position - transform.position;
-            float targetAngleFromPlayer = Vector3.Angle(targetDir, transform.forward);
-            float targetDistanceFromPlayer = Vector3.Distance(transform.position, c.transform.position);
+            Debug.DrawLine(EssentialFunctions.GetMaxBounds(gameObject).center, EssentialFunctions.GetMaxBounds(closestInteractable).center, Color.red);
 
-            //Debug.Log("Item: " + c.gameObject + " Angle: " + targetAngleFromPlayer + " Distance: " + targetDistanceFromPlayer);
-
-
-            // Item is in player view and is not too far
-            if (Math.Abs(targetAngleFromPlayer) < pickupAngle * 0.5f ||
-                targetDistanceFromPlayer < maxPickupDistance)
+            switch (closestInteractable.tag)
             {
-                // Skip self and if item is equipped
-                if (c.transform == transform || c.transform.parent == equippedPosition)
-                    continue;
+                case "Product":
+                    {
+                        // Fill equip slot
+                        EquipItem(closestInteractable.transform);
 
-                // Check if StockItem is an existing component in root of item
-                StockItem stockComponent = c.transform.GetComponentInParent<StockItem>();
-                if (stockComponent)
-                {
-                    // Add to valid list
-                    validItems.Add(stockComponent.transform);
-                    continue;
-                }
-
-                ShelfContainer shelfComponent = c.transform.GetComponentInParent<ShelfContainer>();
-                if (shelfComponent)
-                {
-                    // Add to valid list
-                    validItems.Add(shelfComponent.transform);
-                    continue;
-                }
+                        break;
+                    }
+                case "Shelf":
+                    {
+                        ShelfContainer shelfComponent = closestInteractable.GetComponent<ShelfContainer>();
+                        if (shelfComponent)
+                        {
+                            if (equippedItem)
+                            {
+                                AddStockToShelf(shelfComponent);
+                            }
+                            else
+                            {
+                                GetStockFromShelf(shelfComponent);
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError("Shelf \"" + shelfComponent.gameObject + "\" is missing a ShelfContainer component or wrongly tagged!");
+                        }
+                        break;
+                    }
             }
+
+            justPickedUp = true;
         }
+    }
 
-        // Stop code if there are no valid items in list
-        if (validItems.Count == 0)
-            return null;
+    private void GetStockFromShelf(ShelfContainer shelf)
+    {
+        StockTypes stockType = shelf.ShelfStockType;
+        int amount = shelf.GetStock();
 
-        // Calculate the closest item from player
-        Transform closestItem = validItems[0];
-        float minDistance = Vector3.Distance(transform.position, validItems[0].position);
-
-        // Continue scanning list if there are more than one item in the list
-        if (validItems.Count > 1)
+        if (amount != 0)
         {
-            // Compare next item in the list to previously scanned closest item from player
-            for (int i = 1; i < validItems.Count; i++)
-            {
-                float measuredDistance = Vector3.Distance(transform.position, validItems[i].position);
-
-                if (measuredDistance < minDistance)
-                {
-                    closestItem = validItems[i];
-                    minDistance = measuredDistance;
-                }
-            }
+            GameObject newItem = Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
+            EquipItem(newItem.transform);
         }
+    }
 
-        // Return the closest item
-        return closestItem.gameObject;
+    private void AddStockToShelf(ShelfContainer shelf)
+    {
+        // Check if there is something equipped
+        if (!equippedItem) return;
+
+        // Get stock type that is equipped
+        StockTypes equippedType = equippedItem.GetComponent<StockItem>().GetStockType();
+
+        int result = shelf.AddStock(equippedType);
+
+        if (result == 0)
+        {
+            Destroy(equippedItem);
+        }
     }
 
     private void ThrowItem()

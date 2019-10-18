@@ -10,10 +10,16 @@ public interface NormalCustomer_SM
 
     void UpdateState();
 
+    void FixedUpdateState();
+
     // States
     void ToWalkToPositionState();
 
     void ToPickupState();
 
     void ToPurchaseState();
+
+    void ToDecideState();
+
+    void ToFacePosition();
 }

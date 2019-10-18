@@ -2,25 +2,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// In this state, the AI walks to the destination position, 
-/// then transitions to different states depending on the current task
-/// </summary>
-public class MoveToPositionState : NormalCustomer_SM
+public class RotateToVector : NormalCustomer_SM
 {
     private readonly NormalCustomer_AI stateMachine;
 
-    public MoveToPositionState(NormalCustomer_AI _SM)
+    private float angularVelocity = 0.0f;
+
+    private bool isFinishedRotating = false;
+
+    public RotateToVector(NormalCustomer_AI _SM)
     {
         stateMachine = _SM;
     }
 
     public void StartState()
     {
-        stateMachine.agent.SetDestination(stateMachine.taskDestination);
+        isFinishedRotating = false;
     }
 
-    #region Transition State
+    #region Transitions
 
     public void ToDecideState()
     {
@@ -29,7 +29,7 @@ public class MoveToPositionState : NormalCustomer_SM
 
     public void ToFacePosition()
     {
-        stateMachine.currentState = stateMachine.rotateToVectorState;
+        
     }
 
     public void ToPickupState()
@@ -39,19 +39,19 @@ public class MoveToPositionState : NormalCustomer_SM
 
     public void ToPurchaseState()
     {
-        //stateMachine.currentState = stateMachine.
+        
     }
 
     public void ToWalkToPositionState()
     {
-        // Cannot transition to self!
+        
     }
 
     #endregion
 
     public void UpdateState()
     {
-        if (stateMachine.agent.remainingDistance < 0.5f)
+        if (isFinishedRotating)
         {
             // Go to a state when done walking
             switch (stateMachine.currentTask)
@@ -60,7 +60,7 @@ public class MoveToPositionState : NormalCustomer_SM
                 case Tasks_AI.GetProduct:
                     {
                         // Pickup product on shelf
-                        ToFacePosition();
+                        ToPickupState();
 
                         break;
                     }
@@ -69,7 +69,7 @@ public class MoveToPositionState : NormalCustomer_SM
                 case Tasks_AI.PuchaseProduct:
                     {
                         // Purchase items
-                        ToFacePosition();
+                        ToPurchaseState();
 
                         break;
                     }
@@ -87,6 +87,17 @@ public class MoveToPositionState : NormalCustomer_SM
 
     public void FixedUpdateState()
     {
-
+        Quaternion target_rot = Quaternion.LookRotation(stateMachine.taskDestination - stateMachine.transform.position);
+        float delta = Quaternion.Angle(stateMachine.transform.rotation, target_rot);
+        if (delta > 0.0f)
+        {
+            float t = Mathf.SmoothDampAngle(delta, 0.0f, ref angularVelocity, stateMachine.rotationSpeed);
+            t = 1.0f - t / delta;
+            stateMachine.transform.rotation = Quaternion.Slerp(stateMachine.transform.rotation, target_rot, t);
+        }
+        else
+        {
+            isFinishedRotating = true;
+        }
     }
 }

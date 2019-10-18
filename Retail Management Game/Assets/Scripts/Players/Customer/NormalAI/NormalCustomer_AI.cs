@@ -9,7 +9,7 @@ public class NormalCustomer_AI : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField] float movementSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
-    [SerializeField] float rotationSpeed = 1.0f;
+    public float rotationSpeed = 1.0f;
     [Range(45.0f, 180.0f)]
     [SerializeField] float pickupAngle = 90.0f;
     [SerializeField] float maxPickupDistance = 2.0f;
@@ -20,24 +20,19 @@ public class NormalCustomer_AI : MonoBehaviour
     [SerializeField] float pickupDuration = 2.0f;
     [SerializeField] float purchaseDuration = 2.0f;
 
-    /************************************************************************/
-    /* States                                                               */
-    /************************************************************************/
+    //************************************************************************/
+    // States
+
 
     [HideInInspector]
     public MoveToPositionState moveToPositionState;
-    //[HideInInspector]
-    //public AT_ChaseState chaseState;
-    //[HideInInspector]
-    //public AT_AttackState attackState;
-    //[HideInInspector]
-    //public AT_AlertState alertState;
-    //[HideInInspector]
-    //public AT_DeathState deathState;
+    [HideInInspector]
+    public RotateToVector rotateToVectorState;
+    [HideInInspector]
+    public DecideProductState decideProductState;
 
-    /************************************************************************/
-    /* Runtime Variables                                                    */
-    /************************************************************************/
+    //***********************************************************************/
+    // Runtime Variables
 
     [HideInInspector]
     public MapManager mapManager = null;
@@ -45,17 +40,19 @@ public class NormalCustomer_AI : MonoBehaviour
     public NavMeshAgent agent = null;
     public NormalCustomer_SM currentState;
     NormalCustomer_SM previousState;
+
+    public Tasks_AI currentTask = Tasks_AI.GetProduct;
+
+    public Vector3 taskDestination;
+
     [HideInInspector]
-    public MonoBehaviour taskDestination;
+    public StockTypes currentWantedProduct = StockTypes.None;
 
     void Awake()
     {
         moveToPositionState = new MoveToPositionState(this);
-        //patrolState = new AT_PatrolState(this);
-        //chaseState = new AT_ChaseState(this);
-        //attackState = new AT_AttackState(this);
-        //alertState = new AT_AlertState(this);
-        //deathState = new AT_DeathState(this);
+        rotateToVectorState = new RotateToVector(this);
+        decideProductState = new DecideProductState(this);
     }
 
     // Start is called before the first frame update
@@ -64,11 +61,13 @@ public class NormalCustomer_AI : MonoBehaviour
         // Get MapManager
         mapManager = MapManager.GetInstance();
 
-        currentState = moveToPositionState;
+        // Begin with default state
+        currentState = decideProductState;
 
         // Get NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
 
+        // Call initial start method on current state
         currentState.StartState();
     }
 
@@ -92,5 +91,14 @@ public class NormalCustomer_AI : MonoBehaviour
 
         // Update previous state
         previousState = currentState;
+    }
+
+    private void FixedUpdate()
+    {
+        // Check if Map Manager is loaded
+        if (!mapManager.isDoneLoading) return;
+
+        // Fixed update current state
+        currentState.FixedUpdateState();
     }
 }
