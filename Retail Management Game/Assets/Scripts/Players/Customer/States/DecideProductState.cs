@@ -32,7 +32,7 @@ public class DecideProductState : NormalCustomer_SM
 
     public void ToFacePosition()
     {
-        throw new System.NotImplementedException();
+        
     }
 
     public void ToPickupState()

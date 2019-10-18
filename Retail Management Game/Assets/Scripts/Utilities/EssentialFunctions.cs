@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Where I keep all of my random yet useful functions
+/// </summary>
 public static class EssentialFunctions
 {
     public static Bounds GetMaxBounds(GameObject g)
@@ -81,11 +84,11 @@ public static class EssentialFunctions
         // Items in pickup area that is also in player view angle
         List<Transform> validItems = new List<Transform>();
 
-        //Debug.Log("There are " + inPickupArea.Length + " items in the pickup area.");
-
         // Collect all items in pickup area and check if they are valid
-        foreach (Collider c in inPickupArea)
+        for (int cIndex = 0; cIndex < inPickupArea.Length; cIndex++)
         {
+            Collider c = inPickupArea[cIndex];
+
             // Calculate angle of item in pickup area from player
             Vector3 targetDir = c.transform.position - transform.position;
             float targetAngleFromPlayer = Vector3.Angle(targetDir, transform.forward);
@@ -159,21 +162,31 @@ public static class EssentialFunctions
                 }
             }
         }
+        foreach (Collider c in inPickupArea)
+        {
+            
+        }
 
         // Return the closest item
         return closestItem.gameObject;
     }
 
-    //GameObject FindGameObjectsInParentsWithTag(Transform transform, string tag)
-    //{
-    //    if (transform.CompareTag(tag))
-    //    {
-    //        return transform.gameObject;
-    //    }
-    //    else
-    //    {
-    //        if (transform.parent = GameObject.)
-    //        return FindGameObjectsInParentsWithTag(transform.parent, tag);
-    //    }
-    //}
+    /// <summary>
+    /// Checks object if it is one of multiple tags.
+    /// </summary>
+    /// <param name="transform">Object to check.</param>
+    /// <param name="tags">Tags to compare.</param>
+    /// <returns>True if the tag of the object matches on of the tags.</returns>
+    public static bool CompareTags(Transform transform, string[] tags)
+    {
+        for (int t = 0; t < tags.Length; t++)
+        {
+            if (transform.CompareTag(tags[t]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

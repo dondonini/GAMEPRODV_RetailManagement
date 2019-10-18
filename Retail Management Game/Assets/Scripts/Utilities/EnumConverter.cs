@@ -19,7 +19,6 @@ public static class EnumConverter
         return Enum.GetValues(typeof(T)).Cast<T>().ToList();
     }
 
-
     public static IEnumerable<T> ToEnumerable<T>()
     {
         return (T[])Enum.GetValues(typeof(T));

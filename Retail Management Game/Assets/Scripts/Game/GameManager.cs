@@ -34,8 +34,12 @@ public class GameManager : MonoBehaviour
     //************************************************************************/
     // Variables
 
-    public float despawnHeight = -100.0f;
-    public float defaultViewableRadius = 10.0f;
+    public float despawnHeight = -10.0f;
+
+    [SerializeField]
+    int profit = 0;
+    [SerializeField]
+    int lostCustomers = 0;
 
     [SerializeField]
     List<Transform> players;
@@ -83,5 +87,30 @@ public class GameManager : MonoBehaviour
     public Transform[] Players()
     {
         return players.ToArray();
+    }
+
+    public void AddScore(int amount)
+    {
+        profit += amount;
+    }
+
+    public int GetScore()
+    {
+        return profit;
+    }
+
+    public void StealScore(int amount)
+    {
+        profit -= amount;
+    }
+
+    public void AddLostCustomer()
+    {
+        lostCustomers++;
+    }
+
+    public int GetLostCustomerAmount()
+    {
+        return lostCustomers;
     }
 }
