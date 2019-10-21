@@ -1985,6 +1985,16 @@ PrefabInstance:
       propertyPath: viewingArea
       value: 
       objectReference: {fileID: 875185710}
+    - target: {fileID: 1810993578815517876, guid: bb9d1a56bc919e440bea8627ec9c1055,
+        type: 3}
+      propertyPath: showDebug
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1810993578815517876, guid: bb9d1a56bc919e440bea8627ec9c1055,
+        type: 3}
+      propertyPath: tildEffectAmount
+      value: 0.295
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bb9d1a56bc919e440bea8627ec9c1055, type: 3}
 --- !u!1001 &2277711309157038501

@@ -93,10 +93,18 @@ public class RotateToVector : NormalCustomer_SM
 
         stateMachine.transform.rotation = QuaternionUtil.SmoothDamp(stateMachine.transform.rotation, Quaternion.LookRotation(targetRot), ref angularVelocity, stateMachine.rotationSpeed);
 
+        Vector3 referenceForward = stateMachine.transform.forward;
+        Vector3 referenceRight = Vector3.Cross(Vector3.up, referenceForward);
+
+        float angle = Vector3.Angle(targetRot, referenceForward);
+
+        float sign = Mathf.Sign(Vector3.Dot(targetRot, referenceRight));
+        float finalAngle = sign * angle;
+
         //float fromToDelta = Mathf.Abs(Mathf.DeltaAngle(stateMachine.transform.eulerAngles.y, targetRot.eulerAngles.y));
         float fromToDelta = Vector3.Angle(stateMachine.transform.position, targetRot);
 
-        Debug.Log(fromToDelta);
+        Debug.Log(finalAngle);
 
         if (fromToDelta <= marginOfErrorAmount)
         {
