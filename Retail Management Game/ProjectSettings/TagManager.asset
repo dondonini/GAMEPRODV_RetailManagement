@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Shelf
   - Product
+  - Register
+  - Customer
   layers:
   - Default
   - TransparentFX

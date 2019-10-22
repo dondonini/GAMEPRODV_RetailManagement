@@ -4,8 +4,12 @@ using UnityEngine;
 
 public class MapManager : MonoBehaviour
 {
-    List<ShelfContainer> shelvingUnits = new List<ShelfContainer>();
-    List<StockTypes> stockTypesAvailable = new List<StockTypes>();
+    [Header("Found Shelves")]
+    [ReadOnly][SerializeField] List<ShelfContainer> shelvingUnits = new List<ShelfContainer>();
+    [ReadOnly][SerializeField] List<StockTypes> stockTypesAvailable = new List<StockTypes>();
+
+    [Header("Found Registers")]
+    [ReadOnly][SerializeField] List<CashRegister> cashRegisters = new List<CashRegister>();
 
     // Loading Stats
     [HideInInspector]
@@ -114,6 +118,37 @@ public class MapManager : MonoBehaviour
             Debug.LogWarning("The following prefabs are missing for stock types: " + string.Join(", ", missingStockTypes));
         }
 
+        //************************************************************************/
+        currentLoadingTask = "Collecting registers...";
+
+        GameObject[] foundRegisters;
+        foundRegisters = GameObject.FindGameObjectsWithTag("Register");
+
+        tasksToDo = foundRegisters.Length;
+
+        //************************************************************************/
+        currentLoadingTask = "Validating registers...";
+
+        List<CashRegister> validRegisters = new List<CashRegister>();
+
+        foreach (GameObject register in foundRegisters)
+        {
+            CashRegister result = register.GetComponent<CashRegister>();
+
+            if (result)
+            {
+                validRegisters.Add(result);
+            }
+            else
+            {
+                Debug.LogWarning("Register \"" + register + "\" is tagged as a shelf, but doesn't have a CashRegister compnent!");
+            }
+
+            tasksDone++;
+        }
+
+        cashRegisters.AddRange(validRegisters);
+
         isDoneLoading = true;
     }
 
@@ -158,6 +193,20 @@ public class MapManager : MonoBehaviour
         }
 
         return sortedShelfList[Random.Range(0, sortedShelfList.Count - 1)];
+    }
+
+    public CashRegister GetRandomCashRegister()
+    {
+        if (cashRegisters.Count == 0)
+        {
+            if (!isDoneLoading)
+                Debug.LogWarning("MapManager is not done loading!");
+            else
+                Debug.LogWarning("There are no registers in the map!");
+            return null;
+        }
+
+
     }
 
     public void UpdateAvailableStockTypes()

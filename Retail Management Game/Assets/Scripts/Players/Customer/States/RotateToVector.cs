@@ -20,6 +20,11 @@ public class RotateToVector : NormalCustomer_SM
     public void StartState()
     {
         isFinishedRotating = false;
+
+        if (stateMachine.taskDestinationPosition != stateMachine.taskDestination.position)
+        {
+            stateMachine.taskDestinationPosition = stateMachine.taskDestination.position;
+        }
     }
 
     #region Transitions
@@ -89,38 +94,26 @@ public class RotateToVector : NormalCustomer_SM
 
     public void FixedUpdateState()
     {
-        Vector3 targetRot = stateMachine.taskDestination - stateMachine.transform.position;
+        if (isFinishedRotating) return;
 
+        // Calculate direction to target
+        Vector3 targetRot = stateMachine.taskDestinationPosition - stateMachine.transform.position;
+        targetRot.y = 0.0f;
+        targetRot.Normalize();
+
+        // SmoothDamp towards to target rotation
         stateMachine.transform.rotation = QuaternionUtil.SmoothDamp(stateMachine.transform.rotation, Quaternion.LookRotation(targetRot), ref angularVelocity, stateMachine.rotationSpeed);
 
-        Vector3 referenceForward = stateMachine.transform.forward;
-        Vector3 referenceRight = Vector3.Cross(Vector3.up, referenceForward);
+        // Calculate the angle between target position and customer forward vector
+        float fromToDelta = Vector3.Angle(stateMachine.transform.forward, targetRot);
 
-        float angle = Vector3.Angle(targetRot, referenceForward);
+        Debug.DrawRay(stateMachine.transform.position, targetRot * 5.0f, Color.green);
+        Debug.DrawRay(stateMachine.transform.position, stateMachine.transform.forward * 5.0f, Color.red);
 
-        float sign = Mathf.Sign(Vector3.Dot(targetRot, referenceRight));
-        float finalAngle = sign * angle;
-
-        //float fromToDelta = Mathf.Abs(Mathf.DeltaAngle(stateMachine.transform.eulerAngles.y, targetRot.eulerAngles.y));
-        float fromToDelta = Vector3.Angle(stateMachine.transform.position, targetRot);
-
-        Debug.Log(finalAngle);
-
+        // Stop rotation if angle between target and forward vector is lower than margin of error
         if (fromToDelta <= marginOfErrorAmount)
         {
             isFinishedRotating = true;
         }
-
-        //if (fromToDelta > marginOfErrorAmount)
-        //{
-        //    float t = Mathf.SmoothDampAngle(fromToDelta, 0.0f, ref angularVelocity, stateMachine.rotationSpeed);
-        //    t = 1.0f - t / fromToDelta;
-        //    stateMachine.transform.rotation = Quaternion.Slerp(stateMachine.transform.rotation, targetRot, t);
-        //    //Debug.Log("t: " + t + "\t delta: " + fromToDelta);
-        //}
-        //else
-        //{
-        //    isFinishedRotating = true;
-        //}
     }
 }

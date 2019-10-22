@@ -63,10 +63,12 @@ public class DecideProductState : NormalCustomer_SM
         // Get random shelf wanted
         ShelfContainer selectedShelf = GetShelfDestination();
 
+        stateMachine.taskDestination = selectedShelf.transform;
+
         Vector3[] pickupPositions = selectedShelf.GetPickupPositions();
 
         // Set AI destination to selected shelf
-        stateMachine.taskDestination = pickupPositions[Random.Range(0, pickupPositions.Length - 1)];
+        stateMachine.taskDestinationPosition = pickupPositions[Random.Range(0, pickupPositions.Length - 1)];
 
         decided = true;
     }

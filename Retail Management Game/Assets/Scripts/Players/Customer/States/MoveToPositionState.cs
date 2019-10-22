@@ -17,7 +17,7 @@ public class MoveToPositionState : NormalCustomer_SM
 
     public void StartState()
     {
-        stateMachine.agent.SetDestination(stateMachine.taskDestination);
+        stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
     }
 
     #region Transition State

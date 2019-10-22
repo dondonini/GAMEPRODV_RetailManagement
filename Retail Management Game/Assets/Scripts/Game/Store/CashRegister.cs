@@ -4,6 +4,16 @@ using UnityEngine;
 
 public class CashRegister : MonoBehaviour
 {
+    [SerializeField] int maxQueueLength = 5;
+
+    [ReadOnly][SerializeField] List<Transform> queue = new List<Transform>();
+
+    //*************************************************************************
+    [Header("References")]
+
+    [SerializeField] Transform queueStartPosition;
+    [SerializeField] Transform queueEndDirection;
+
     //*************************************************************************
     // Managers
 
@@ -37,4 +47,26 @@ public class CashRegister : MonoBehaviour
             }
         }
     }
+
+    #region Getters and Setters
+
+    public bool AddToQueue(GameObject customer)
+    {
+        if (queue.Count >= maxQueueLength) return false;
+
+        if (!customer.CompareTag("Customer")) return false;
+
+        queue.Add(customer.transform);
+
+        return true;
+    }
+
+    public void RemoveToQueue(GameManager customer)
+    {
+        bool result = queue.Remove(customer.transform);
+
+        if (!result) Debug.LogWarning("Customer "
+    }
+
+    #endregion
 }

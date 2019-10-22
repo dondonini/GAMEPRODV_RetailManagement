@@ -17,6 +17,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float pickupAngle = 90.0f;
     [SerializeField] float maxPickupDistance = 2.0f;
     [SerializeField] float maxShelfDistance = 0.5f;
+    [SerializeField] float dashPower = 100.0f;
+    [SerializeField] float dashDuration = 5.0f;
+    [SerializeField] float dashDeacceleration = 5.0f;
     [Tooltip("The amount of force when throwing your equipped item.")]
     [SerializeField] float throwPower = 100.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
@@ -46,7 +49,6 @@ public class PlayerController : MonoBehaviour
     float throwHoldTimer = 0.0f;
     bool throwItem = false;
     bool justPickedUp = false;
-    GameObject closestInteractible = null;
 
     MapManager mapManager;
 
