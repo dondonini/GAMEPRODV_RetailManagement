@@ -18,7 +18,7 @@ public class WaitForProductState : NormalCustomer_SM
 
     #region Transition
 
-    public void ToDecideState()
+    public void ToDecideProductState()
     {
         
     }
@@ -53,5 +53,15 @@ public class WaitForProductState : NormalCustomer_SM
     public void FixedUpdateState()
     {
 
+    }
+
+    public void ToDecideRegisterState()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void ToQueuingState()
+    {
+        throw new System.NotImplementedException();
     }
 }

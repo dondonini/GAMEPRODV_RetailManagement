@@ -20,9 +20,14 @@ public class GrabProductState : NormalCustomer_SM
 
     #region Transitions
 
-    public void ToDecideState()
+    public void ToDecideProductState()
     {
         
+    }
+
+    public void ToDecideRegisterState()
+    {
+        stateMachine.currentState = stateMachine.decideRegisterState;
     }
 
     public void ToFacePosition()
@@ -55,8 +60,8 @@ public class GrabProductState : NormalCustomer_SM
         }
         else if (waitTime <= 0.0f)
         {
-            stateMachine.currentTask = Tasks_AI.PuchaseProduct;
-            ToWalkToPositionState();
+            stateMachine.currentTask = Tasks_AI.GoToRegister;
+            ToDecideRegisterState();
         }
         else
         {
@@ -180,5 +185,10 @@ public class GrabProductState : NormalCustomer_SM
         {
             Object.Destroy(stateMachine.equippedItem);
         }
+    }
+
+    public void ToQueuingState()
+    {
+        throw new System.NotImplementedException();
     }
 }

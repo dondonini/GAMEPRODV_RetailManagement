@@ -45,6 +45,11 @@ public class MapManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        StartCoroutine(LoadMap());
+    }
+
+    IEnumerator LoadMap()
+    {
         //************************************************************************/
         currentLoadingTask = "Collecting shelves...";
 
@@ -61,7 +66,7 @@ public class MapManager : MonoBehaviour
         foreach (GameObject shelf in foundShelves)
         {
             ShelfContainer result = shelf.GetComponent<ShelfContainer>();
-            
+
             if (result)
             {
                 validShelves.Add(result);
@@ -72,6 +77,8 @@ public class MapManager : MonoBehaviour
             }
 
             tasksDone++;
+
+            yield return new WaitForEndOfFrame();
         }
 
         shelvingUnits.AddRange(validShelves);
@@ -113,6 +120,8 @@ public class MapManager : MonoBehaviour
                 {
                     missingStockTypes.Add(allStocks[stock].ToString());
                 }
+
+                yield return new WaitForEndOfFrame();
             }
 
             Debug.LogWarning("The following prefabs are missing for stock types: " + string.Join(", ", missingStockTypes));
@@ -141,15 +150,18 @@ public class MapManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("Register \"" + register + "\" is tagged as a shelf, but doesn't have a CashRegister compnent!");
+                Debug.LogWarning("Register \"" + register + "\" is tagged as a Register, but doesn't have a CashRegister compnent!");
             }
 
             tasksDone++;
+            yield return new WaitForEndOfFrame();
         }
 
         cashRegisters.AddRange(validRegisters);
 
         isDoneLoading = true;
+
+        yield return new WaitForEndOfFrame();
     }
 
     // Update is called once per frame
@@ -192,6 +204,8 @@ public class MapManager : MonoBehaviour
             return null;
         }
 
+        Random.InitState((int)(Random.value * Time.realtimeSinceStartup * 1000));
+
         return sortedShelfList[Random.Range(0, sortedShelfList.Count - 1)];
     }
 
@@ -206,7 +220,7 @@ public class MapManager : MonoBehaviour
             return null;
         }
 
-
+        return cashRegisters[Random.Range(0, cashRegisters.Count)];
     }
 
     public void UpdateAvailableStockTypes()

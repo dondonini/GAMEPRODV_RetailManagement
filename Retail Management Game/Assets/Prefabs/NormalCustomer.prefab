@@ -1,32 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &4160762856738423085
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3916754907984623229}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4a340f27bdb19c48a8c1d3be38b4358, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  movementSpeed: 10
-  rotationSpeed: 1
-  pickupAngle: 90
-  maxPickupDistance: 2
-  pushPower: 2
-  pickupDuration: 2
-  purchaseDuration: 2
-  equippedPosition: {fileID: 207814457390101299}
-  pickupArea: {fileID: 6760169244115080094}
-  agent: {fileID: 0}
-  currentWantedProduct: 0
-  currentTask: 0
-  taskDestination: {x: 0, y: 0, z: 0}
-  equippedItem: {fileID: 0}
-  mapManager: {fileID: 0}
 --- !u!1001 &3902856822890139051
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -47,7 +20,7 @@ PrefabInstance:
     - target: {fileID: 32264397420461012, guid: ad1b6c24397a02344a197966791f6ded,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 6.0388697e-18
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 32264397420461012, guid: ad1b6c24397a02344a197966791f6ded,
         type: 3}
@@ -94,28 +67,5 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7780330673156628021, guid: ad1b6c24397a02344a197966791f6ded,
-        type: 3}
-      propertyPath: m_Size.x
-      value: 4
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ad1b6c24397a02344a197966791f6ded, type: 3}
---- !u!1 &3916754907984623229 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 32264397420461014, guid: ad1b6c24397a02344a197966791f6ded,
-    type: 3}
-  m_PrefabInstance: {fileID: 3902856822890139051}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &207814457390101299 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3804404515067592344, guid: ad1b6c24397a02344a197966791f6ded,
-    type: 3}
-  m_PrefabInstance: {fileID: 3902856822890139051}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &6760169244115080094 stripped
-BoxCollider:
-  m_CorrespondingSourceObject: {fileID: 7780330673156628021, guid: ad1b6c24397a02344a197966791f6ded,
-    type: 3}
-  m_PrefabInstance: {fileID: 3902856822890139051}
-  m_PrefabAsset: {fileID: 0}

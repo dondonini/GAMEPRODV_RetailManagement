@@ -20,9 +20,14 @@ public class MoveToPositionState : NormalCustomer_SM
         stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
     }
 
-    #region Transition State
+    #region Transition
 
-    public void ToDecideState()
+    public void ToDecideProductState()
+    {
+        
+    }
+
+    public void ToDecideRegisterState()
     {
         
     }
@@ -39,7 +44,7 @@ public class MoveToPositionState : NormalCustomer_SM
 
     public void ToPurchaseState()
     {
-        //stateMachine.currentState = stateMachine.
+
     }
 
     public void ToWalkToPositionState()
@@ -47,11 +52,16 @@ public class MoveToPositionState : NormalCustomer_SM
         // Cannot transition to self!
     }
 
+    public void ToQueuingState()
+    {
+        stateMachine.currentState = stateMachine.queuingState;
+    }
+
     #endregion
 
     public void UpdateState()
     {
-        if (stateMachine.agent.remainingDistance < 0.5f)
+        if (stateMachine.agent.remainingDistance < 0.25f)
         {
             // Go to a state when done walking
             switch (stateMachine.currentTask)
@@ -62,6 +72,28 @@ public class MoveToPositionState : NormalCustomer_SM
                         // Pickup product on shelf
                         ToFacePosition();
 
+                        break;
+                    }
+
+                case Tasks_AI.GoToRegister:
+                    {
+                        CashRegister register = stateMachine.TaskDestinationAsRegister();
+                        if (register)
+                        {
+                            if (register.GetCustomerQueueRank(stateMachine.gameObject) > 0)
+                            {
+                                stateMachine.currentState = stateMachine.queuingState;
+                            }
+                            else
+                            {
+                                ToFacePosition();
+                            }
+                        }
+                        else
+                        {
+                            ToFacePosition();
+                        }
+                        
                         break;
                     }
 

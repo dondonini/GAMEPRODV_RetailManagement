@@ -19,7 +19,7 @@ public class NormalCustomer_AI : MonoBehaviour
     public float purchaseDuration = 2.0f;
 
     //************************************************************************
-    // References
+    [Header("References")]
 
     public Transform equippedPosition;
     [SerializeField] BoxCollider pickupArea;
@@ -28,9 +28,12 @@ public class NormalCustomer_AI : MonoBehaviour
     // States
 
     [HideInInspector] public MoveToPositionState moveToPositionState;
+    [HideInInspector] public QueuingState queuingState;
     [HideInInspector] public RotateToVector rotateToVectorState;
     [HideInInspector] public DecideProductState decideProductState;
+    [HideInInspector] public DecideRegisterState decideRegisterState;
     [HideInInspector] public GrabProductState pickupProductState;
+    [HideInInspector] public PurchaseState purchaseProductState;
 
     //************************************************************************
     // Runtime Variables
@@ -41,10 +44,13 @@ public class NormalCustomer_AI : MonoBehaviour
     NormalCustomer_SM previousState;
 
     [HideInInspector] public StockTypes currentWantedProduct = StockTypes.None;
-    public Tasks_AI currentTask = Tasks_AI.GetProduct;
-    public Vector3 taskDestinationPosition;
-    public Transform taskDestination;
-    public GameObject equippedItem;
+
+    [Header("Real-Time Stats")]
+    [ReadOnly] public Tasks_AI currentTask = Tasks_AI.GetProduct;
+    [ReadOnly] public Vector3 taskDestinationPosition;
+    [ReadOnly] public Transform taskDestination;
+    [ReadOnly] public GameObject equippedItem;
+    [ReadOnly] [SerializeField] bool isActive = false;
 
     //*************************************************************************
     // Managers
@@ -96,9 +102,12 @@ public class NormalCustomer_AI : MonoBehaviour
     void Awake()
     {
         moveToPositionState = new MoveToPositionState(this);
+        queuingState = new QueuingState(this);
         rotateToVectorState = new RotateToVector(this);
         decideProductState = new DecideProductState(this);
+        decideRegisterState = new DecideRegisterState(this);
         pickupProductState = new GrabProductState(this);
+        purchaseProductState = new PurchaseState(this);
     }
 
     // Start is called before the first frame update
@@ -112,16 +121,24 @@ public class NormalCustomer_AI : MonoBehaviour
 
         // Get NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
-
-        // Call initial start method on current state
-        currentState.StartState();
     }
 
     // Update is called once per frame
     void Update()
     {
         // Check if Map Manager is loaded
-        if (!mapManager.isDoneLoading) return;
+        if (mapManager.isDoneLoading && !isActive)
+        {
+            isActive = true;
+
+            // Call initial start method on current state
+            currentState.StartState();
+        }
+        
+        if (!mapManager.isDoneLoading)
+        {
+            return;
+        }
 
         // Update current state
         currentState.UpdateState();
@@ -142,7 +159,7 @@ public class NormalCustomer_AI : MonoBehaviour
     private void FixedUpdate()
     {
         // Check if Map Manager is loaded
-        if (!mapManager.isDoneLoading) return;
+        if (!isActive) return;
 
         // Fixed update current state
         currentState.FixedUpdateState();
@@ -158,5 +175,10 @@ public class NormalCustomer_AI : MonoBehaviour
     {
         CashRegister result = taskDestination.GetComponent<CashRegister>();
         return result;
+    }
+
+    public bool IsHoldingItem()
+    {
+        return equippedItem;
     }
 }

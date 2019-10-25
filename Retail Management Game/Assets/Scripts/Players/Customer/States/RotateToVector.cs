@@ -29,9 +29,14 @@ public class RotateToVector : NormalCustomer_SM
 
     #region Transitions
 
-    public void ToDecideState()
+    public void ToDecideProductState()
     {
         
+    }
+
+    public void ToDecideRegisterState()
+    {
+        stateMachine.currentState = stateMachine.decideRegisterState;
     }
 
     public void ToFacePosition()
@@ -46,7 +51,7 @@ public class RotateToVector : NormalCustomer_SM
 
     public void ToPurchaseState()
     {
-        
+        stateMachine.currentState = stateMachine.purchaseProductState;
     }
 
     public void ToWalkToPositionState()
@@ -72,11 +77,18 @@ public class RotateToVector : NormalCustomer_SM
                         break;
                     }
 
+                case Tasks_AI.GoToRegister:
+                    {
+                        ToPurchaseState();
+
+                        break;
+                    }
+
                 // AI should be at the register
                 case Tasks_AI.PuchaseProduct:
                     {
                         // Purchase items
-                        ToPurchaseState();
+                        //ToPurchaseState();
 
                         break;
                     }
@@ -114,6 +126,12 @@ public class RotateToVector : NormalCustomer_SM
         if (fromToDelta <= marginOfErrorAmount)
         {
             isFinishedRotating = true;
+            Debug.Log("Customer is now looking at the target!", stateMachine.gameObject);
         }
+    }
+
+    public void ToQueuingState()
+    {
+        throw new System.NotImplementedException();
     }
 }

@@ -233,13 +233,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4230984331e3de41b114a9b7bef17db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  movmentSpeed: 250
-  rotationSpeed: 0.7
-  pickupAngle: 75
+  movmentSpeed: 10
+  rotationSpeed: 1
+  pickupAngle: 90
   maxPickupDistance: 2
   maxShelfDistance: 0.5
-  throwPower: 500
-  pushPower: 1
+  dashPower: 100
+  dashDuration: 5
+  dashDeacceleration: 5
+  throwPower: 100
+  pushPower: 2
   doubleTapThreshold: 100
   holdThreshold: 125
   currentCamera: {fileID: 0}
@@ -319,5 +322,5 @@ BoxCollider:
   m_IsTrigger: 1
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 3.8637033, y: 2, z: 2}
+  m_Size: {x: 4, y: 2, z: 2}
   m_Center: {x: 0, y: 1, z: 0}

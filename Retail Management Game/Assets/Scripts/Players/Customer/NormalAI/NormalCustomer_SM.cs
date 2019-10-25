@@ -19,7 +19,11 @@ public interface NormalCustomer_SM
 
     void ToPurchaseState();
 
-    void ToDecideState();
+    void ToDecideProductState();
 
     void ToFacePosition();
+
+    void ToDecideRegisterState();
+
+    void ToQueuingState();
 }

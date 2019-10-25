@@ -23,11 +23,16 @@ public class DecideProductState : NormalCustomer_SM
         decided = false;
     }
 
-    #region Transition States
+    #region Transition
 
-    public void ToDecideState()
+    public void ToDecideProductState()
     {
         // Cannot transition to self!
+    }
+
+    public void ToDecideRegisterState()
+    {
+        
     }
 
     public void ToFacePosition()
@@ -48,6 +53,11 @@ public class DecideProductState : NormalCustomer_SM
     public void ToWalkToPositionState()
     {
         stateMachine.currentState = stateMachine.moveToPositionState;
+    }
+
+    public void ToQueuingState()
+    {
+        
     }
 
     #endregion
@@ -80,6 +90,9 @@ public class DecideProductState : NormalCustomer_SM
 
     StockTypes GetRandomStockType(StockTypes exclude = StockTypes.None)
     {
+        if (!stateMachine.mapManager.isDoneLoading)
+            return GetRandomStockType(exclude);
+
         List<StockTypes> productSelection = stateMachine.mapManager.GetStockTypesAvailable().ToList();
         
         // Remove StockType.None and whatever is exluded
@@ -97,6 +110,8 @@ public class DecideProductState : NormalCustomer_SM
 
     ShelfContainer GetShelfDestination()
     {
+        if (!stateMachine.mapManager.isDoneLoading)
+            return GetShelfDestination();
 
         // Get a random stock type
         StockTypes selectedType = GetRandomStockType(stateMachine.currentWantedProduct);
