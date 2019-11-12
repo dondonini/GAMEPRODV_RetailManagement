@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 
 /// <summary>
@@ -188,5 +189,18 @@ public static class EssentialFunctions
         }
 
         return false;
+    }
+
+    public static T GetRandomFromArray<T>(List<T> array)
+    {
+        return GetRandomFromArray(array.ToArray());
+    }
+
+    public static T GetRandomFromArray<T>(T[] array)
+    {
+        if (array.Length == 1)
+            return array[0];
+        else
+            return array[Random.Range(0, array.Length)];
     }
 }

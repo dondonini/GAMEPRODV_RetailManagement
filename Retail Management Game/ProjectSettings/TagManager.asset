@@ -8,6 +8,7 @@ TagManager:
   - Product
   - Register
   - Customer
+  - MapExitPoint
   layers:
   - Default
   - TransparentFX

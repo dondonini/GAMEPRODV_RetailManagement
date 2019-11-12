@@ -7,9 +7,11 @@ using UnityEngine.Events;
 public class CashRegister : MonoBehaviour
 {
     [SerializeField] int maxQueueLength = 5;
+    [Tooltip("The gap size between customers in the queue.")]
+    [SerializeField] float queueGap = 0.1f;
     [SerializeField] Vector3 queueDirection = new Vector3(0.0f, 0.0f, 1.0f);
 
-    [ReadOnly][SerializeField] Dictionary<GameObject, Vector3> queue = new Dictionary<GameObject, Vector3>();
+    [ReadOnly][SerializeField] List<GameObject> queue = new List<GameObject>();
 
     //*************************************************************************
     [Header("References")]
@@ -36,13 +38,16 @@ public class CashRegister : MonoBehaviour
         Gizmos.color = Color.blue;
 
         if (queueStartPosition)
-            Gizmos.DrawLine(queueStartPosition.position, queueStartPosition.position + (queueDirection * maxQueueLength));
+            if (queue.Count == 0)
+                Gizmos.DrawLine(queueStartPosition.position, queueStartPosition.position + (queueDirection * maxQueueLength));
+            else
+                Gizmos.DrawLine(queueStartPosition.position, CalculateQueuePosition(queue.Count - 1));
 
         Gizmos.color = Color.green;
 
         for (int p = 0; p < queue.Count; p++)
         {
-            Gizmos.DrawCube(queue.Values.ElementAt(p), new Vector3(0.1f, 0.1f, 0.1f));
+           Gizmos.DrawCube(CalculateQueuePosition(p), new Vector3(0.1f, 0.1f, 0.1f));
         }
     }
 
@@ -81,79 +86,89 @@ public class CashRegister : MonoBehaviour
 
     public Vector3 AddToQueue(GameObject customer)
     {
+        // Check if queue is full
         if (queue.Count >= maxQueueLength) 
             return Vector3.zero;
 
-        if (!customer.CompareTag("Customer")) 
-            return Vector3.zero;
-
-        if (queue.ContainsKey(customer))
+        // Check if customer is actually a customer (Should never happen)
+        if (!customer.CompareTag("Customer"))
         {
-            Debug.Log("Customer is already in queue!", customer);
+            Debug.LogWarning("Either the customer is not tagged as Customer or you're trying to add a random object into the queue.", customer);
             return Vector3.zero;
         }
 
-        Vector3 customerPosition = GetNextQueuePostion();
+        // Check if customer is already in the queue.
+        if (queue.Contains(customer))
+        {
+            Debug.Log("Customer is already in queue! If you're trying to get the customer's position in line, use GetCustomerQueuePosition(GameObject customer) instead.", customer);
+            return GetCustomerQueuePostion(customer);
+        }
 
-        queue.Add(customer, customerPosition);
+        // Setup customer in queue
+        if (queue.Count == 0)
+            queue.Add(customer);
+        else
+        {
+            // Add customer to queue depending on their distance
+            float customerDistance = Vector3.Distance(customer.transform.position, transform.position);
+            bool isCloser = false;
 
+            for (int i = 0; i < queue.Count; i++)
+            {
+                if (Vector3.Distance(queue[i].transform.position, transform.position) > customerDistance)
+                {
+                    queue.Insert(i, customer);
+                    isCloser = true;
+                    break;
+                }
+            }
+
+            if (!isCloser)
+                queue.Add(customer);
+        }
+
+        
+        
+
+        // Invoke attached customers in queue that line has changed
         QueueChanged.Invoke();
 
-        return customerPosition;
+        // Return customer position in line
+        return GetCustomerQueuePostion(customer);
     }
 
-    public void RemoveToQueue(GameObject customer)
+    public void RemoveFromQueue(GameObject customer)
     {
         bool result = queue.Remove(customer);
 
         if (!result) 
             Debug.LogWarning("Customer " + customer + " is not part of this queue!", customer);
-
-        QueueChanged.Invoke();
+        else
+            QueueChanged.Invoke();
     }
 
-    public Vector3 GetNextQueuePostion()
+    public Vector3 GetFrontOfLinePosition()
     {
-        float newPositionDistance = 0.0f;
-
-        for (int i = 0; i < queue.Count; i++)
-        {
-            Bounds customerBound = EssentialFunctions.GetMaxBounds(queue.Keys.First());
-
-            if (i == 0)
-            {
-                newPositionDistance += customerBound.size.magnitude * 0.5f;
-                continue;
-            }
-
-            newPositionDistance += customerBound.size.magnitude;
-        }
-
-        return queueStartPosition.position + (queueDirection * newPositionDistance);
+        return queueStartPosition.position;
     }
 
     public Vector3 GetCustomerQueuePostion(GameObject customer)
     {
-        Vector3 customerPosition;
-        bool result = queue.TryGetValue(customer, out customerPosition);
-
-        if (result)
-            return customerPosition;
-        else
-            return Vector3.zero;
+        return CalculateQueuePosition(customer);
     }
 
     public int GetCustomerQueueRank(GameObject customer)
     {
+        // Get customer rank in queue list
         for (int i = 0; i < queue.Count; i++)
         {
-            if (queue.Keys.ElementAt(i) == customer)
+            if (customer == queue[i])
             {
-                return ++i;
+                return i;
             }
         }
 
-        return 0;
+        return -1;
     }
 
     public bool IsFull()
@@ -162,4 +177,39 @@ public class CashRegister : MonoBehaviour
     }
 
     #endregion
+
+    Vector3 CalculateQueuePosition(GameObject customer)
+    {
+        // Get customer rank in queue list
+        int rank = GetCustomerQueueRank(customer);
+
+        if (rank != -1)
+            return CalculateQueuePosition(rank);
+        else
+            return Vector3.zero;
+    }
+
+    Vector3 CalculateQueuePosition(int rank)
+    {
+        // Give starter position if rank is 0
+        if (rank == 0)
+            return queueStartPosition.position;
+
+        float distance = 0;
+
+        for (int i = 0; i < rank; i++)
+        {
+            if (i == 1 && i == rank)
+                distance += EssentialFunctions.GetMaxBounds(queue[i]).size.magnitude * 0.5f;
+            else
+            {
+                distance += EssentialFunctions.GetMaxBounds(queue[i]).size.magnitude;
+            }
+
+            distance += queueGap;
+        }
+
+        // Calculate distance from queue start position
+        return queueStartPosition.position + (queueDirection * distance);
+    }
 }

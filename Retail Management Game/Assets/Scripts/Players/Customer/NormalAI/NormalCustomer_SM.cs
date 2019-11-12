@@ -4,7 +4,7 @@ using UnityEngine;
 
 public interface NormalCustomer_SM
 {
-    // Essentials
+    // Main functions
 
     void StartState();
 
@@ -12,18 +12,15 @@ public interface NormalCustomer_SM
 
     void FixedUpdateState();
 
-    // States
-    void ToWalkToPositionState();
+    // Transitions
 
-    void ToPickupState();
+    void ToGetProductState();
 
     void ToPurchaseState();
 
-    void ToDecideProductState();
+    void ToLeaveStoreState();
 
-    void ToFacePosition();
+    void ToWaitForProductState();
 
-    void ToDecideRegisterState();
-
-    void ToQueuingState();
+    void ToWaitForRegisterState();
 }

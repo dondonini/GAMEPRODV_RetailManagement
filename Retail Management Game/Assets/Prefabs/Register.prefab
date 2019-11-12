@@ -17,7 +17,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 4294967295
   m_IsActive: 1
 --- !u!4 &6782545197949873969
 Transform:
@@ -106,7 +106,7 @@ GameObject:
   m_TagString: Register
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 4294967295
   m_IsActive: 1
 --- !u!4 &6782545198499078829
 Transform:
@@ -137,8 +137,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxQueueLength: 5
+  queueGap: 0.1
   queueDirection: {x: 1, y: 0, z: 0}
+  queue: []
   queueStartPosition: {fileID: 883279352277387589}
+  QueueChanged:
+    m_PersistentCalls:
+      m_Calls: []
+    m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
 --- !u!1 &9067699642837559631
 GameObject:
   m_ObjectHideFlags: 0
@@ -153,7 +160,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 4294967295
   m_IsActive: 1
 --- !u!4 &883279352277387589
 Transform:

@@ -5,24 +5,26 @@ using UnityEngine;
 public class MapManager : MonoBehaviour
 {
     [Header("Found Shelves")]
-    [ReadOnly][SerializeField] List<ShelfContainer> shelvingUnits = new List<ShelfContainer>();
-    [ReadOnly][SerializeField] List<StockTypes> stockTypesAvailable = new List<StockTypes>();
+    [SerializeField] List<ShelfContainer> shelvingUnits = new List<ShelfContainer>();
+    [SerializeField] List<StockTypes> stockTypesAvailable = new List<StockTypes>();
 
     [Header("Found Registers")]
-    [ReadOnly][SerializeField] List<CashRegister> cashRegisters = new List<CashRegister>();
+    [SerializeField] List<CashRegister> cashRegisters = new List<CashRegister>();
+
+    [Header("Found Exit Points")]
+    [SerializeField] List<Transform> exitPoints = new List<Transform>();
+
+    [Header("Prefabs")]
+    public StockToPrefabType[] stockPrefabs;
 
     // Loading Stats
-    [HideInInspector]
-    public bool isDoneLoading = false;
+    [ReadOnly] public bool isDoneLoading = false;
     [HideInInspector]
     public string currentLoadingTask = "";
     [HideInInspector]
     public float finishedPercentage = 0.0f;
     int tasksToDo = 0;
     int tasksDone = 0;
-
-    [Header("Prefabs")]
-    public StockToPrefabType[] stockPrefabs;
 
     static MapManager instance = null;
 
@@ -45,10 +47,10 @@ public class MapManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(LoadMap());
+        LoadMap();
     }
 
-    IEnumerator LoadMap()
+    void LoadMap()
     {
         //************************************************************************/
         currentLoadingTask = "Collecting shelves...";
@@ -63,8 +65,10 @@ public class MapManager : MonoBehaviour
 
         List<ShelfContainer> validShelves = new List<ShelfContainer>();
 
-        foreach (GameObject shelf in foundShelves)
+        for (int s = 0; s < foundShelves.Length; s++)
         {
+            GameObject shelf = foundShelves[s];
+
             ShelfContainer result = shelf.GetComponent<ShelfContainer>();
 
             if (result)
@@ -77,8 +81,6 @@ public class MapManager : MonoBehaviour
             }
 
             tasksDone++;
-
-            yield return new WaitForEndOfFrame();
         }
 
         shelvingUnits.AddRange(validShelves);
@@ -120,8 +122,6 @@ public class MapManager : MonoBehaviour
                 {
                     missingStockTypes.Add(allStocks[stock].ToString());
                 }
-
-                yield return new WaitForEndOfFrame();
             }
 
             Debug.LogWarning("The following prefabs are missing for stock types: " + string.Join(", ", missingStockTypes));
@@ -140,8 +140,10 @@ public class MapManager : MonoBehaviour
 
         List<CashRegister> validRegisters = new List<CashRegister>();
 
-        foreach (GameObject register in foundRegisters)
+        for (int r = 0; r < foundRegisters.Length; r++)
         {
+            GameObject register = foundRegisters[r];
+
             CashRegister result = register.GetComponent<CashRegister>();
 
             if (result)
@@ -154,14 +156,21 @@ public class MapManager : MonoBehaviour
             }
 
             tasksDone++;
-            yield return new WaitForEndOfFrame();
         }
 
         cashRegisters.AddRange(validRegisters);
 
-        isDoneLoading = true;
+        //************************************************************************/
+        currentLoadingTask = "Collecting exit points...";
 
-        yield return new WaitForEndOfFrame();
+        GameObject[] temp_ExitPoints = GameObject.FindGameObjectsWithTag("MapExitPoint");
+
+        for (int point = 0; point < temp_ExitPoints.Length; point++)
+        {
+            exitPoints.Add(temp_ExitPoints[point].transform);
+        }
+
+        isDoneLoading = true;
     }
 
     // Update is called once per frame
@@ -172,7 +181,7 @@ public class MapManager : MonoBehaviour
 
     public ShelfContainer GetRandomShelvingUnit(StockTypes selectedType = StockTypes.None)
     {
-
+        // Check if there are shelves in the map
         if (shelvingUnits.Count == 0)
         {
             if (!isDoneLoading)
@@ -183,19 +192,23 @@ public class MapManager : MonoBehaviour
             return null;
         }
 
-        List<ShelfContainer> sortedShelfList = shelvingUnits;
-
+        // Filter out shelves that are needed
+        List<ShelfContainer> sortedShelfList = new List<ShelfContainer>();
         if (selectedType != StockTypes.None)
         {
-            for (int i = 0; i < sortedShelfList.Count; i++)
+            for (int i = 0; i < shelvingUnits.Count; i++)
             {
-                ShelfContainer currentShelf = sortedShelfList[i];
+                ShelfContainer currentShelf = shelvingUnits[i];
 
-                if (currentShelf.ShelfStockType != selectedType)
+                if (currentShelf.ShelfStockType == selectedType)
                 {
-                    sortedShelfList.RemoveAt(i);
+                    sortedShelfList.Add(shelvingUnits[i]);
                 }
             }
+        }
+        else
+        {
+            CopyData.CopyObjectData(shelvingUnits, sortedShelfList);
         }
 
         if (sortedShelfList.Count == 0)
@@ -206,7 +219,8 @@ public class MapManager : MonoBehaviour
 
         Random.InitState((int)(Random.value * Time.realtimeSinceStartup * 1000));
 
-        return sortedShelfList[Random.Range(0, sortedShelfList.Count - 1)];
+        return EssentialFunctions.GetRandomFromArray(sortedShelfList);
+        //return sortedShelfList[Random.Range(0, sortedShelfList.Count - 1)];
     }
 
     public CashRegister GetRandomCashRegister()
@@ -227,25 +241,15 @@ public class MapManager : MonoBehaviour
     {
         List<StockTypes> updatedList = new List<StockTypes>();
 
-        foreach (ShelfContainer s in shelvingUnits)
+        for (int s = 0; s < shelvingUnits.Count; s++)
         {
-            if (stockTypesAvailable.Count == 0 || s.ShelfStockType != StockTypes.None)
-            {
-                updatedList.Add(s.ShelfStockType);
-            }
+            ShelfContainer shelves = shelvingUnits[s];
+
+            if (stockTypesAvailable.Count == 0 || shelves.ShelfStockType != StockTypes.None)
+                updatedList.Add(shelves.ShelfStockType);
             else
-            {
-                // Compare each shelf to available stock type list
-                for (int i = 0; i < stockTypesAvailable.Count; i++)
-                {
-                    if (s.ShelfStockType == stockTypesAvailable[i] || s.ShelfStockType == StockTypes.None)
-                        // Ignore stock type of shelf cause it is either empty or already is in the list
-                        continue;
-                    else
-                        // Add new type to list
-                        updatedList.Add(s.ShelfStockType);
-                }
-            }
+                if (!stockTypesAvailable.Contains(shelves.ShelfStockType) && shelves.ShelfStockType != StockTypes.None)
+                    updatedList.Add(shelves.ShelfStockType);
         }
 
         // Replace old list with updated one
@@ -254,34 +258,65 @@ public class MapManager : MonoBehaviour
 
     #region Getters and Setters
 
+    /// <summary>
+    /// Gets all of the shelving units in the map
+    /// </summary>
+    /// <returns>All shelving units in the map</returns>
     public ShelfContainer[] GetShelvingUnits()
     {
         return shelvingUnits.ToArray();
     }
 
+    /// <summary>
+    /// Gets the exit points in the map
+    /// </summary>
+    /// <returns>All exit points in the map</returns>
+    public Transform[] GetMapExitPoints()
+    {
+        return exitPoints.ToArray();
+    }
+
+    /// <summary>
+    /// Gets the available stock types in the current map
+    /// </summary>
+    /// <returns>All available stock types</returns>
     public StockTypes[] GetStockTypesAvailable()
     {
         return stockTypesAvailable.ToArray();
     }
 
+    /// <summary>
+    /// Converts stockType to an actual prefab model
+    /// </summary>
+    /// <param name="stockType">StockType you're looking for</param>
+    /// <returns>Random prefab of said stockType</returns>
     public GameObject GetStockTypePrefab(StockTypes stockType)
     {
-        foreach(StockToPrefabType c in stockPrefabs)
+        for (int c = 0; c < stockPrefabs.Length; c++)
         {
-            if (c.GetStockType() == stockType)
+            // Collect stock pack
+            StockToPrefabType stockPrefabPack = stockPrefabs[c];
+
+            // Check if stockType matches what you're looking for
+            if (stockPrefabPack.GetStockType() == stockType)
             {
-                if (c.prefabs.Length == 1)
+                // Check if there's only one prefab model in the pack
+                if (stockPrefabPack.prefabs.Length == 1)
                 {
-                    return c.prefabs[0];
+                    // Return the one
+                    return stockPrefabPack.prefabs[0];
                 }
                 else
                 {
-                    return c.prefabs[Random.Range(0, c.prefabs.Length)];
+                    // Return a random prefab in the pack
+                    return EssentialFunctions.GetRandomFromArray(stockPrefabPack.prefabs);
+                    //return stockPrefabPack.prefabs[Random.Range(0, stockPrefabPack.prefabs.Length)];
                 }
-                
+
             }
         }
 
+        // Return nothing because it doesn't exist
         return null;
     }
 

@@ -12,7 +12,7 @@ public class NormalCustomer_AI : MonoBehaviour
     public float rotationSpeed = 1.0f;
     [Range(45.0f, 180.0f)]
     [SerializeField] float pickupAngle = 90.0f;
-    [SerializeField] float maxPickupDistance = 2.0f;
+    public float maxPickupDistance = 1.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
     [SerializeField] float pushPower = 2.0f;
     public float pickupDuration = 2.0f;
@@ -23,16 +23,13 @@ public class NormalCustomer_AI : MonoBehaviour
 
     public Transform equippedPosition;
     [SerializeField] BoxCollider pickupArea;
+    public ColliderToUnityEvents colliderEvents;
 
     //************************************************************************
     // States
 
-    [HideInInspector] public MoveToPositionState moveToPositionState;
-    [HideInInspector] public QueuingState queuingState;
-    [HideInInspector] public RotateToVector rotateToVectorState;
-    [HideInInspector] public DecideProductState decideProductState;
-    [HideInInspector] public DecideRegisterState decideRegisterState;
-    [HideInInspector] public GrabProductState pickupProductState;
+    [HideInInspector] public GetProductState getProductState;
+    [HideInInspector] public LeavingState leavingState;
     [HideInInspector] public PurchaseState purchaseProductState;
 
     //************************************************************************
@@ -40,15 +37,20 @@ public class NormalCustomer_AI : MonoBehaviour
 
     [HideInInspector]
     public NavMeshAgent agent = null;
+    public NavMeshObstacle obstacle = null;
     public NormalCustomer_SM currentState;
     NormalCustomer_SM previousState;
+
+    bool firstTime = false;
 
     [HideInInspector] public StockTypes currentWantedProduct = StockTypes.None;
 
     [Header("Real-Time Stats")]
-    [ReadOnly] public Tasks_AI currentTask = Tasks_AI.GetProduct;
+#pragma warning disable IDE0052 // Remove unread private members
+    [ReadOnly] [SerializeField] string currentStateAction = "";
+#pragma warning restore IDE0052 // Remove unread private members
     [ReadOnly] public Vector3 taskDestinationPosition;
-    [ReadOnly] public Transform taskDestination;
+    [ReadOnly] public Transform taskDestination = null;
     [ReadOnly] public GameObject equippedItem;
     [ReadOnly] [SerializeField] bool isActive = false;
 
@@ -66,6 +68,31 @@ public class NormalCustomer_AI : MonoBehaviour
         pickupArea.size = new Vector3(boxSizeWidth * 2.0f, boxSizeHeight, boxSizeDepth);
         pickupArea.transform.localPosition = new Vector3(0.0f, 0.0f, boxSizeDepth * 0.5f);
     }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (agent)
+        {
+            Gizmos.color = Color.black;
+
+            NavMeshPath path = agent.path;
+
+            if (path.corners.Length > 2) //if the path has 1 or no corners, there is no need
+                for (int i = 0; i < path.corners.Length - 1; i++)
+                {
+                    Gizmos.DrawLine(path.corners[i], path.corners[i + 1]);
+                    //Gizmos.DrawSphere(path.corners[i], 0.1f);
+                }
+            else if (path.corners.Length == 2)
+            {
+                Gizmos.DrawLine(path.corners[0], path.corners[1]);
+            }
+        }
+        
+    }
+
+    // Brandon Alvarado
+    // 991368826
 
     // Allows player to push rigidbody objects
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -101,12 +128,8 @@ public class NormalCustomer_AI : MonoBehaviour
 
     void Awake()
     {
-        moveToPositionState = new MoveToPositionState(this);
-        queuingState = new QueuingState(this);
-        rotateToVectorState = new RotateToVector(this);
-        decideProductState = new DecideProductState(this);
-        decideRegisterState = new DecideRegisterState(this);
-        pickupProductState = new GrabProductState(this);
+        getProductState = new GetProductState(this);
+        leavingState = new LeavingState(this);
         purchaseProductState = new PurchaseState(this);
     }
 
@@ -117,25 +140,28 @@ public class NormalCustomer_AI : MonoBehaviour
         mapManager = MapManager.GetInstance();
 
         // Begin with default state
-        currentState = decideProductState;
+        currentState = getProductState;
 
         // Get NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
+        agent.autoRepath = true;
     }
 
     // Update is called once per frame
     void Update()
     {
         // Check if Map Manager is loaded
-        if (mapManager.isDoneLoading && !isActive)
+        if (mapManager.isDoneLoading && !firstTime)
         {
-            isActive = true;
+            firstTime = true;
+
+            EnableStateMachine();
 
             // Call initial start method on current state
             currentState.StartState();
         }
         
-        if (!mapManager.isDoneLoading)
+        if (!isActive)
         {
             return;
         }
@@ -165,6 +191,11 @@ public class NormalCustomer_AI : MonoBehaviour
         currentState.FixedUpdateState();
     }
 
+    public void UpdateActionStatus(string action)
+    {
+        currentStateAction = string.Format("{0} / {1}", currentState, action);
+    }
+
     public ShelfContainer TaskDestinationAsShelf()
     {
         ShelfContainer result = taskDestination.GetComponent<ShelfContainer>();
@@ -180,5 +211,61 @@ public class NormalCustomer_AI : MonoBehaviour
     public bool IsHoldingItem()
     {
         return equippedItem;
+    }
+
+    public void EnableStateMachine()
+    {
+        isActive = true;
+    }
+
+    public void DisableStateMachine()
+    {
+        isActive = false;
+    }
+
+    public bool IsStateMachineActive()
+    {
+        return isActive;
+    }
+
+    public void EquipItem(Transform item)
+    {
+        // Get game object
+        equippedItem = item.gameObject;
+
+        // Get rigidbody from item and disable physics
+        Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
+        productRB.isKinematic = true;
+
+        // Attach item to player hold position
+        equippedItem.transform.SetParent(equippedPosition);
+        equippedItem.transform.localPosition = Vector3.zero;
+    }
+
+    public void Interact()
+    {
+        ShelfContainer interactShelf = TaskDestinationAsShelf();
+
+        // Check if task destination is a shelf
+        if (interactShelf)
+        {
+            // Is not holding a product in hand
+            if (!equippedItem)
+            {
+                GetStockFromShelf(interactShelf);
+            }
+        }
+    }
+
+    public void GetStockFromShelf(ShelfContainer shelf)
+    {
+        StockTypes stockType = shelf.ShelfStockType;
+        int amount = shelf.GetStock();
+
+        if (amount != 0)
+        {
+            GameObject newItem = Object.Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
+            EquipItem(newItem.transform);
+        }
     }
 }
