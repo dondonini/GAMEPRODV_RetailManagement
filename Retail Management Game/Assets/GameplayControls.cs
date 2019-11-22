@@ -1,14 +1,15 @@
 // GENERATED AUTOMATICALLY FROM 'Assets/GameplayControls.inputactions'
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
-public class GameplayControls : IInputActionCollection
+public class @GameplayControls : IInputActionCollection, IDisposable
 {
     private InputActionAsset asset;
-    public GameplayControls()
+    public @GameplayControls()
     {
         asset = InputActionAsset.FromJson(@"{
     ""name"": ""GameplayControls"",
@@ -260,7 +261,7 @@ public class GameplayControls : IInputActionCollection
         m_Default_Dash = m_Default.FindAction("Dash", throwIfNotFound: true);
     }
 
-    ~GameplayControls()
+    public void Dispose()
     {
         UnityEngine.Object.Destroy(asset);
     }
@@ -314,8 +315,8 @@ public class GameplayControls : IInputActionCollection
     private readonly InputAction m_Default_Dash;
     public struct DefaultActions
     {
-        private GameplayControls m_Wrapper;
-        public DefaultActions(GameplayControls wrapper) { m_Wrapper = wrapper; }
+        private @GameplayControls m_Wrapper;
+        public DefaultActions(@GameplayControls wrapper) { m_Wrapper = wrapper; }
         public InputAction @Pickup => m_Wrapper.m_Default_Pickup;
         public InputAction @Movement => m_Wrapper.m_Default_Movement;
         public InputAction @Interact => m_Wrapper.m_Default_Interact;
@@ -330,40 +331,40 @@ public class GameplayControls : IInputActionCollection
         {
             if (m_Wrapper.m_DefaultActionsCallbackInterface != null)
             {
-                Pickup.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnPickup;
-                Pickup.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnPickup;
-                Pickup.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnPickup;
-                Movement.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
-                Movement.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
-                Movement.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
-                Interact.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
-                Interact.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
-                Interact.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
-                Emote.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
-                Emote.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
-                Emote.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
-                Dash.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
-                Dash.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
-                Dash.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
+                @Pickup.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnPickup;
+                @Pickup.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnPickup;
+                @Pickup.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnPickup;
+                @Movement.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
+                @Movement.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
+                @Movement.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnMovement;
+                @Interact.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
+                @Interact.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
+                @Interact.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnInteract;
+                @Emote.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
+                @Emote.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
+                @Emote.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnEmote;
+                @Dash.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
+                @Dash.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
+                @Dash.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
             }
             m_Wrapper.m_DefaultActionsCallbackInterface = instance;
             if (instance != null)
             {
-                Pickup.started += instance.OnPickup;
-                Pickup.performed += instance.OnPickup;
-                Pickup.canceled += instance.OnPickup;
-                Movement.started += instance.OnMovement;
-                Movement.performed += instance.OnMovement;
-                Movement.canceled += instance.OnMovement;
-                Interact.started += instance.OnInteract;
-                Interact.performed += instance.OnInteract;
-                Interact.canceled += instance.OnInteract;
-                Emote.started += instance.OnEmote;
-                Emote.performed += instance.OnEmote;
-                Emote.canceled += instance.OnEmote;
-                Dash.started += instance.OnDash;
-                Dash.performed += instance.OnDash;
-                Dash.canceled += instance.OnDash;
+                @Pickup.started += instance.OnPickup;
+                @Pickup.performed += instance.OnPickup;
+                @Pickup.canceled += instance.OnPickup;
+                @Movement.started += instance.OnMovement;
+                @Movement.performed += instance.OnMovement;
+                @Movement.canceled += instance.OnMovement;
+                @Interact.started += instance.OnInteract;
+                @Interact.performed += instance.OnInteract;
+                @Interact.canceled += instance.OnInteract;
+                @Emote.started += instance.OnEmote;
+                @Emote.performed += instance.OnEmote;
+                @Emote.canceled += instance.OnEmote;
+                @Dash.started += instance.OnDash;
+                @Dash.performed += instance.OnDash;
+                @Dash.canceled += instance.OnDash;
             }
         }
     }

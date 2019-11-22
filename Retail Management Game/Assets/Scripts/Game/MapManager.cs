@@ -217,10 +217,22 @@ public class MapManager : MonoBehaviour
             return null;
         }
 
-        Random.InitState((int)(Random.value * Time.realtimeSinceStartup * 1000));
+        // Filter out empty shelves
+        List<ShelfContainer> stockedShelves = new List<ShelfContainer>();
+        for (int s = 0; s < sortedShelfList.Count; s++)
+        {
+            ShelfContainer shelf = sortedShelfList[s];
+            if (!shelf.IsEmpty())
+                stockedShelves.Add(shelf);
+        }
 
-        return EssentialFunctions.GetRandomFromArray(sortedShelfList);
-        //return sortedShelfList[Random.Range(0, sortedShelfList.Count - 1)];
+        if (stockedShelves.Count == 0)
+        {
+            Debug.Log("All shelves of " + selectedType.ToString() + " is empty!");
+            return EssentialFunctions.GetRandomFromArray(sortedShelfList); ;
+        }
+        else
+            return EssentialFunctions.GetRandomFromArray(stockedShelves);
     }
 
     public CashRegister GetRandomCashRegister()
@@ -234,7 +246,7 @@ public class MapManager : MonoBehaviour
             return null;
         }
 
-        return cashRegisters[Random.Range(0, cashRegisters.Count)];
+        return EssentialFunctions.GetRandomFromArray(cashRegisters);
     }
 
     public void UpdateAvailableStockTypes()
@@ -301,15 +313,15 @@ public class MapManager : MonoBehaviour
             if (stockPrefabPack.GetStockType() == stockType)
             {
                 // Check if there's only one prefab model in the pack
-                if (stockPrefabPack.prefabs.Length == 1)
+                if (stockPrefabPack.GetPrefabs().Length == 1)
                 {
                     // Return the one
-                    return stockPrefabPack.prefabs[0];
+                    return stockPrefabPack.GetPrefabs()[0];
                 }
                 else
                 {
                     // Return a random prefab in the pack
-                    return EssentialFunctions.GetRandomFromArray(stockPrefabPack.prefabs);
+                    return EssentialFunctions.GetRandomFromArray(stockPrefabPack.GetPrefabs());
                     //return stockPrefabPack.prefabs[Random.Range(0, stockPrefabPack.prefabs.Length)];
                 }
 
@@ -318,6 +330,42 @@ public class MapManager : MonoBehaviour
 
         // Return nothing because it doesn't exist
         return null;
+    }
+
+    public int GetStockTypePrice(StockTypes stockType)
+    {
+        StockToPrefabType stockToPrefabType = null;
+
+        for (int i = 0; i < stockPrefabs.Length; i++)
+        {
+            if (stockPrefabs[i].GetStockType() == stockType)
+            {
+                stockToPrefabType = stockPrefabs[i];
+            }
+        }
+
+        if (stockToPrefabType != null)
+            return stockToPrefabType.GetStockTypePrice();
+        else
+            return 0;
+    }
+
+    public Sprite GetStockTypeThumbnail(StockTypes stockType)
+    {
+        StockToPrefabType stockToPrefabType = null;
+
+        for (int i = 0; i < stockPrefabs.Length; i++)
+        {
+            if (stockPrefabs[i].GetStockType() == stockType)
+            {
+                stockToPrefabType = stockPrefabs[i];
+            }
+        }
+
+        if (stockToPrefabType != null)
+            return stockToPrefabType.GetThumbnail();
+        else
+            return null;
     }
 
     #endregion

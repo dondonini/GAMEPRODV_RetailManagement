@@ -7,7 +7,6 @@ using UnityEngine.AI;
 public class NormalCustomer_AI : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] float movementSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
     public float rotationSpeed = 1.0f;
     [Range(45.0f, 180.0f)]
@@ -17,13 +16,16 @@ public class NormalCustomer_AI : MonoBehaviour
     [SerializeField] float pushPower = 2.0f;
     public float pickupDuration = 2.0f;
     public float purchaseDuration = 2.0f;
+    public float stuckThreshold = 3.0f;
+    public float unstuckDuration = 3.0f;
 
     //************************************************************************
     [Header("References")]
 
     public Transform equippedPosition;
-    [SerializeField] BoxCollider pickupArea;
-    public ColliderToUnityEvents colliderEvents;
+    [SerializeField] BoxCollider pickupArea = null;
+    public ColliderToUnityEvents colliderEvents = null;
+    public Transform infoHalo = null;
 
     //************************************************************************
     // States
@@ -31,6 +33,7 @@ public class NormalCustomer_AI : MonoBehaviour
     [HideInInspector] public GetProductState getProductState;
     [HideInInspector] public LeavingState leavingState;
     [HideInInspector] public PurchaseState purchaseProductState;
+    [HideInInspector] public WaitingForProductState waitForProductState;
 
     //************************************************************************
     // Runtime Variables
@@ -40,19 +43,23 @@ public class NormalCustomer_AI : MonoBehaviour
     public NavMeshObstacle obstacle = null;
     public NormalCustomer_SM currentState;
     NormalCustomer_SM previousState;
+    Vector3 previousPosition;
 
     bool firstTime = false;
+    float unstuckTimer = 0.0f;
 
     [HideInInspector] public StockTypes currentWantedProduct = StockTypes.None;
 
     [Header("Real-Time Stats")]
 #pragma warning disable IDE0052 // Remove unread private members
     [ReadOnly] [SerializeField] string currentStateAction = "";
+    [ReadOnly] [SerializeField] string subStateMachineState = "";
 #pragma warning restore IDE0052 // Remove unread private members
     [ReadOnly] public Vector3 taskDestinationPosition;
     [ReadOnly] public Transform taskDestination = null;
-    [ReadOnly] public GameObject equippedItem;
+    [ReadOnly] public GameObject equippedItem = null;
     [ReadOnly] [SerializeField] bool isActive = false;
+    [ReadOnly] public bool isGettingUnstuck = false;
 
     //*************************************************************************
     // Managers
@@ -67,6 +74,12 @@ public class NormalCustomer_AI : MonoBehaviour
 
         pickupArea.size = new Vector3(boxSizeWidth * 2.0f, boxSizeHeight, boxSizeDepth);
         pickupArea.transform.localPosition = new Vector3(0.0f, 0.0f, boxSizeDepth * 0.5f);
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(equippedPosition.position, 0.1f);
     }
 
     private void OnDrawGizmosSelected()
@@ -90,9 +103,11 @@ public class NormalCustomer_AI : MonoBehaviour
         }
         
     }
-
-    // Brandon Alvarado
-    // 991368826
+    
+    //.~'~.~'~.~'~.~'~.~//
+    // Brandon Alvarado //
+    // 991368826        //
+    //.~'~.~'~.~'~.~'~.~//
 
     // Allows player to push rigidbody objects
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -115,7 +130,7 @@ public class NormalCustomer_AI : MonoBehaviour
          * Calculate push direction from move direction,
          * we only push objects to the sides never up and down
          */
-        Vector3 pushDir = new Vector3(hit.moveDirection.x, 0.0f, hit.moveDirection.z);
+        Vector3 pushDirection = new Vector3(hit.moveDirection.x, 0.0f, hit.moveDirection.z);
 
         /***
          * If you know how fast your character is trying to move,
@@ -123,7 +138,7 @@ public class NormalCustomer_AI : MonoBehaviour
          */
 
         // Apply the push
-        body.velocity = pushDir * (agent.velocity.magnitude * pushPower);
+        body.velocity = pushDirection * (agent.velocity.magnitude * pushPower);
     }
 
     void Awake()
@@ -131,6 +146,7 @@ public class NormalCustomer_AI : MonoBehaviour
         getProductState = new GetProductState(this);
         leavingState = new LeavingState(this);
         purchaseProductState = new PurchaseState(this);
+        waitForProductState = new WaitingForProductState(this);
     }
 
     // Start is called before the first frame update
@@ -145,6 +161,9 @@ public class NormalCustomer_AI : MonoBehaviour
         // Get NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
         agent.autoRepath = true;
+
+        // Get NavMeshObstacle
+        obstacle = GetComponent<NavMeshObstacle>();
     }
 
     // Update is called once per frame
@@ -166,6 +185,8 @@ public class NormalCustomer_AI : MonoBehaviour
             return;
         }
 
+        IsStuck();
+
         // Update current state
         currentState.UpdateState();
 
@@ -174,12 +195,17 @@ public class NormalCustomer_AI : MonoBehaviour
         {
             Debug.Log("State changed! " + previousState + " -> " + currentState);
 
+            // Activate exit state of previous state
+            previousState.ExitState();
+
             // Activate start state
             currentState.StartState();
         }
 
         // Update previous state
         previousState = currentState;
+
+        previousPosition = transform.position;
     }
 
     private void FixedUpdate()
@@ -194,6 +220,33 @@ public class NormalCustomer_AI : MonoBehaviour
     public void UpdateActionStatus(string action)
     {
         currentStateAction = string.Format("{0} / {1}", currentState, action);
+        subStateMachineState = action;
+    }
+
+    public void IsStuck()
+    {
+        if (!isGettingUnstuck)
+        {
+            if (!(CalculateTransformVelocity().magnitude < 1.0f || subStateMachineState == "Moving" || subStateMachineState == "Queuing"))
+            {
+                unstuckTimer = 0.0f;
+            }
+            else
+            {
+                if (unstuckTimer < stuckThreshold)
+                {
+                    unstuckTimer += Time.deltaTime;
+                }
+                else
+                {
+                    Debug.Log(gameObject + " is stuck!");
+
+                    
+
+                    unstuckTimer = 0.0f;
+                }
+            }
+        }
     }
 
     public ShelfContainer TaskDestinationAsShelf()
@@ -267,5 +320,46 @@ public class NormalCustomer_AI : MonoBehaviour
             GameObject newItem = Object.Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
             EquipItem(newItem.transform);
         }
+    }
+
+    Vector3 CalculateTransformVelocity()
+    {
+        return (transform.position - previousPosition) / Time.deltaTime;
+    }
+
+    /// <summary>
+    /// Rotates subject towards the target using SmoothDamp
+    /// </summary>
+    /// <param name="transformToTurn">Subject to turn.</param>
+    /// <param name="target">Target to turn subject towards.</param>
+    /// <param name="currentVelocity">The current velocity, this value is modified by the function every time you call it.</param>
+    /// <param name="smoothTime">Approximately the time it will take to reach the target. A smaller value will reach the target faster.</param>
+    /// <returns>The delta angle between the direction the subject is facing to target position.</returns>
+    public float RotateTowardsTargetSmoothDamp(Transform transformToTurn, Transform target, ref Quaternion currentVelocity, float smoothTime)
+    {
+        // Calculate direction to target
+        Vector3 targetRot = target.position - transformToTurn.position;
+        targetRot.y = 0.0f;
+        targetRot.Normalize();
+
+        // SmoothDamp towards to target rotation
+        transformToTurn.rotation =
+            QuaternionUtil.SmoothDamp(
+                transformToTurn.rotation,
+                Quaternion.LookRotation(targetRot),
+                ref currentVelocity,
+                smoothTime
+            );
+
+        // Debug visuals
+        Debug.DrawRay(transformToTurn.position, targetRot * 5.0f, Color.green);
+        Debug.DrawRay(transformToTurn.position, transformToTurn.forward * 5.0f, Color.red);
+
+        return Vector3.Angle(transformToTurn.forward, targetRot);
+    }
+
+    public NormalCustomer_SM GetPreviousState()
+    {
+        return previousState;
     }
 }

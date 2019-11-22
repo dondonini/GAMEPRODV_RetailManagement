@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class LoadingManager : MonoBehaviour
 {
-    [SerializeField] Image loadingBar;
+    [SerializeField] Image loadingBar = null;
 
     // Start is called before the first frame update
     void Start()

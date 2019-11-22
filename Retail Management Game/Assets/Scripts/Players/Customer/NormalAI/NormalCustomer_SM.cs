@@ -8,6 +8,8 @@ public interface NormalCustomer_SM
 
     void StartState();
 
+    void ExitState();
+
     void UpdateState();
 
     void FixedUpdateState();

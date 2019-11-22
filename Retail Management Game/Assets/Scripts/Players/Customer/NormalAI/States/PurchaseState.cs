@@ -41,6 +41,11 @@ public class PurchaseState : NormalCustomer_SM
         waitTime = stateMachine.purchaseDuration;
     }
 
+    public void ExitState()
+    {
+
+    }
+
     #region Transitions
 
     public void ToPurchaseState()
@@ -153,18 +158,18 @@ public class PurchaseState : NormalCustomer_SM
                 }
             case PurchaseActions.Queuing:
                 {
-                    int rank = register.GetCustomerQueueRank(stateMachine.gameObject);
+                    //int rank = register.GetCustomerQueueRank(stateMachine.gameObject);
 
-                    if (rank != previousQueueRank)
-                    {
-                        stateMachine.taskDestinationPosition = register.GetCustomerQueuePostion(stateMachine.gameObject);
+                    //if (rank != previousQueueRank)
+                    //{
+                    //    stateMachine.taskDestinationPosition = register.GetCustomerQueuePostion(stateMachine.gameObject);
 
-                        stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
+                    //    stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
 
-                        currentAction = PurchaseActions.Moving;
-                    }
+                    //    currentAction = PurchaseActions.Moving;
+                    //}
 
-                    previousQueueRank = rank;
+                    //previousQueueRank = rank;
                     break;
                 }
             case PurchaseActions.Purchasing:
@@ -178,10 +183,12 @@ public class PurchaseState : NormalCustomer_SM
                         waitTime -= Time.deltaTime;
                     else
                     {
+                        register.QueueChanged.RemoveListener(QueueChanged);
+
                         // Leave the cash register queue
                         register.RemoveFromQueue(stateMachine.gameObject);
 
-                        register.QueueChanged.RemoveListener(QueueChanged);
+                        
 
                         // Leave the store
                         ToLeaveStoreState();

@@ -6,6 +6,12 @@ using UnityEngine.Events;
 
 public class CashRegister : MonoBehaviour
 {
+    enum queueTurnDirections
+    {
+        Left,
+        Right,
+    }
+
     [SerializeField] int maxQueueLength = 5;
     [Tooltip("The gap size between customers in the queue.")]
     [SerializeField] float queueGap = 0.1f;
@@ -16,7 +22,7 @@ public class CashRegister : MonoBehaviour
     //*************************************************************************
     [Header("References")]
 
-    [SerializeField] Transform queueStartPosition;
+    [SerializeField] Transform queueStartPosition = null;
 
     //*************************************************************************
     [Header("Events")]
@@ -27,6 +33,7 @@ public class CashRegister : MonoBehaviour
     // Managers
 
     GameManager gameManager;
+    MapManager mapManager;
 
     private void OnValidate()
     {
@@ -55,6 +62,7 @@ public class CashRegister : MonoBehaviour
     void Start()
     {
         gameManager = GameManager.GetInstance();
+        mapManager = MapManager.GetInstance();
     }
 
     // Update is called once per frame
@@ -71,7 +79,7 @@ public class CashRegister : MonoBehaviour
 
             if (stockItem)
             {
-                gameManager.AddScore(stockItem.GetPrice());
+                gameManager.AddScore(mapManager.GetStockTypePrice(stockItem.GetStockType()));
 
                 // Delete sold product
                 product.parent = null;
@@ -87,8 +95,9 @@ public class CashRegister : MonoBehaviour
     public Vector3 AddToQueue(GameObject customer)
     {
         // Check if queue is full
-        if (queue.Count >= maxQueueLength) 
-            return Vector3.zero;
+        //if (queue.Count >= maxQueueLength) 
+        //    return Vector3.zero;        //if (queue.Count >= maxQueueLength) 
+        //    return Vector3.zero;
 
         // Check if customer is actually a customer (Should never happen)
         if (!customer.CompareTag("Customer"))
@@ -195,6 +204,8 @@ public class CashRegister : MonoBehaviour
         if (rank == 0)
             return queueStartPosition.position;
 
+
+
         float distance = 0;
 
         for (int i = 0; i < rank; i++)
@@ -202,14 +213,53 @@ public class CashRegister : MonoBehaviour
             if (i == 1 && i == rank)
                 distance += EssentialFunctions.GetMaxBounds(queue[i]).size.magnitude * 0.5f;
             else
-            {
                 distance += EssentialFunctions.GetMaxBounds(queue[i]).size.magnitude;
-            }
 
             distance += queueGap;
         }
 
+        // 
+
+        Vector3 queuePosition = queueStartPosition.position + (queueDirection * distance);
+
+        RaycastHit hit;
+
+        if (Physics.Raycast(queueStartPosition.position + new Vector3(0.0f, 1.0f , 0.0f), queueDirection, out hit, distance, LayerMask.GetMask("Default")))
+        {
+            Debug.Log("LINE IS TOO LONG!");
+
+            Vector3 turnOrigin = hit.point - (queueDirection * 2.0f);
+
+            float remainingDistance = distance - Vector3.Distance(turnOrigin, queueStartPosition.position + new Vector3(0.0f, 1.0f, 0.0f));
+
+            queueTurnDirections turnDirection = queueTurnDirections.Left;
+
+            // transformed vectors right and left:
+            Vector3 queueRight = new Vector3(queueDirection.z, queueDirection.y, -queueDirection.x);
+
+            if (!Physics.Raycast(turnOrigin, queueRight, out hit, remainingDistance, LayerMask.GetMask("Default")))
+            {
+                turnDirection = queueTurnDirections.Right;
+            }
+
+            switch (turnDirection)
+            {
+                case queueTurnDirections.Left:
+                    {
+                        Debug.DrawLine(turnOrigin, turnOrigin + (-queueRight * remainingDistance), Color.blue);
+                        queuePosition = turnOrigin + (-queueRight * remainingDistance);
+                        break;
+                    }
+                case queueTurnDirections.Right:
+                    {
+                        Debug.DrawLine(turnOrigin, turnOrigin + (queueRight * remainingDistance), Color.blue);
+                        queuePosition = turnOrigin + (queueRight * remainingDistance);
+                        break;
+                    }
+            }
+        }
+
         // Calculate distance from queue start position
-        return queueStartPosition.position + (queueDirection * distance);
+        return queuePosition;
     }
 }

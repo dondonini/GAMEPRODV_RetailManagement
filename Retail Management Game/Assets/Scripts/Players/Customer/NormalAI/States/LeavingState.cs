@@ -35,6 +35,11 @@ public class LeavingState : NormalCustomer_SM
         exitPoint = null;
     }
 
+    public void ExitState()
+    {
+
+    }
+
     #region Transition
 
     public void ToGetProductState()
@@ -83,7 +88,7 @@ public class LeavingState : NormalCustomer_SM
                 }
             case LeavingActions.Moving:
                 {
-                    if (stateMachine.agent.remainingDistance < 0.1f)
+                    if (stateMachine.agent.remainingDistance < 2.0f)
                     {
                         currentAction = LeavingActions.Bye;
                     }

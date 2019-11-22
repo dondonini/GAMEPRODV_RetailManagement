@@ -16,10 +16,10 @@ public class PlayerController : MonoBehaviour
     [Range(45.0f, 90.0f)]
     [SerializeField] float pickupAngle = 90.0f;
     [SerializeField] float maxPickupDistance = 2.0f;
-    [SerializeField] float maxShelfDistance = 0.5f;
-    [SerializeField] float dashPower = 100.0f;
-    [SerializeField] float dashDuration = 5.0f;
-    [SerializeField] float dashDeacceleration = 5.0f;
+    //[SerializeField] float maxShelfDistance = 0.5f;
+    //[SerializeField] float dashPower = 100.0f;
+    //[SerializeField] float dashDuration = 5.0f;
+    //[SerializeField] float dashDeacceleration = 5.0f;
     [Tooltip("The amount of force when throwing your equipped item.")]
     [SerializeField] float throwPower = 100.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
@@ -32,27 +32,33 @@ public class PlayerController : MonoBehaviour
     /************************************************/
     [Space]
     [Header("Links")]
-    [SerializeField] Camera currentCamera;
-    [SerializeField] CharacterController characterController;
-    [SerializeField] Transform equippedPosition;
-    [SerializeField] BoxCollider pickupArea;
-    GameObject equippedItem;
+    [SerializeField] Camera currentCamera = null;
+    [SerializeField] CharacterController characterController = null;
+    [SerializeField] Transform equippedPosition = null;
+    [SerializeField] BoxCollider pickupArea = null;
+    GameObject equippedItem = null;
 
     /************************************************/
     // Runtime Variables
-    InputAction c_movement;
-    InputAction c_pickup;
 
     Vector3 playerDirection = Vector3.zero;
-    float dashTapTimer = 0.0f;
-    int dashTapCount = 0;
-    float throwHoldTimer = 0.0f;
     bool throwItem = false;
     bool justPickedUp = false;
 
-    MapManager mapManager;
+    // Timers
+    float dashTapTimer = 0.0f;
+    int dashTapCount = 0;
+    float throwHoldTimer = 0.0f;
 
-    private void OnDrawGizmosSelected()
+    // Managers
+    MapManager mapManager;
+    GameplayControls gameplayControls;
+
+    // Controls
+    InputAction c_movement;
+    InputAction c_pickup;
+
+    private void OnDrawGizmos()
     {
         // Show equip position
         Gizmos.color = Color.red;
@@ -77,7 +83,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        GameplayControls gameplayControls = new GameplayControls();
+        gameplayControls = new GameplayControls();
 
         // Attach all controls
         c_movement = gameplayControls.Default.Movement;
@@ -297,7 +303,7 @@ public class PlayerController : MonoBehaviour
 
     private void Interact()
     {
-        string[] tagsToScan = { "Product", "Shelf" };
+        string[] tagsToScan = { "Product", "StockCrate", "Shelf" };
         GameObject[] excludedGameObjects = { gameObject, equippedItem };
 
         GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
@@ -311,6 +317,12 @@ public class PlayerController : MonoBehaviour
                 case "Product":
                     {
                         // Fill equip slot
+                        EquipItem(closestInteractable.transform);
+
+                        break;
+                    }
+                case "StockCrate":
+                    {
                         EquipItem(closestInteractable.transform);
 
                         break;
@@ -341,8 +353,13 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // ////////////////////////////////////////
+    // Shelf Interation ///////////////////////
+    // ////////////////////////////////////////
+
     private void GetStockFromShelf(ShelfContainer shelf)
     {
+
         StockTypes stockType = shelf.ShelfStockType;
         int amount = shelf.GetStock();
 
@@ -358,16 +375,38 @@ public class PlayerController : MonoBehaviour
         // Check if there is something equipped
         if (!equippedItem) return;
 
-        // Get stock type that is equipped
-        StockTypes equippedType = equippedItem.GetComponent<StockItem>().GetStockType();
+        int result = 0;
 
-        int result = shelf.AddStock(equippedType);
+        switch (equippedItem.tag)
+        {
+            case "Product":
+                {
+                    // Get stock type that is equipped
+                    StockTypes equippedType = equippedItem.GetComponent<StockItem>().GetStockType();
+
+                    result = shelf.AddStock(equippedType);
+                    break;
+                }
+            case "StockCrate":
+                {
+                    StockCrate crateComponent = equippedItem.GetComponent<StockCrate>();
+                    if (crateComponent)
+                    {
+                        result = shelf.AddStock(crateComponent.GetQuantity(), crateComponent.GetStockType());
+                    }
+                    break;
+                }
+        }
 
         if (result == 0)
         {
             Destroy(equippedItem);
         }
     }
+
+    // ////////////////////////////////////////
+    // Stock Interation ///////////////////////
+    // ////////////////////////////////////////
 
     private void ThrowItem()
     {
@@ -409,4 +448,9 @@ public class PlayerController : MonoBehaviour
         equippedItem.transform.SetParent(null);
         equippedItem = null;
     }
+
+    // ////////////////////////////////////////
+    // Stock Crate Interation /////////////////
+    // ////////////////////////////////////////
+
 }

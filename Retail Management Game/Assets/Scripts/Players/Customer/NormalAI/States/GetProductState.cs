@@ -36,6 +36,11 @@ public class GetProductState : NormalCustomer_SM
         waitTimer = stateMachine.pickupDuration;
     }
 
+    public void ExitState()
+    {
+
+    }
+
     #region Transitions
 
     public void ToGetProductState()
@@ -55,12 +60,12 @@ public class GetProductState : NormalCustomer_SM
 
     public void ToWaitForProductState()
     {
-        throw new System.NotImplementedException();
+        stateMachine.currentState = stateMachine.waitForProductState;
     }
 
     public void ToWaitForRegisterState()
     {
-        throw new System.NotImplementedException();
+
     }
 
     #endregion
@@ -112,26 +117,8 @@ public class GetProductState : NormalCustomer_SM
             // AI is turning towards the shelf
             case GetProductActions.Turning:
                 {
-                    // Calculate direction to target
-                    targetRot = stateMachine.taskDestination.position - stateMachine.transform.position;
-                    targetRot.y = 0.0f;
-                    targetRot.Normalize();
-
-                    // SmoothDamp towards to target rotation
-                    stateMachine.transform.rotation = 
-                        QuaternionUtil.SmoothDamp(
-                            stateMachine.transform.rotation, 
-                            Quaternion.LookRotation(targetRot), 
-                            ref angularVelocity, 
-                            stateMachine.rotationSpeed
-                        );
-
-                    // Debug visuals
-                    Debug.DrawRay(stateMachine.transform.position, targetRot * 5.0f, Color.green);
-                    Debug.DrawRay(stateMachine.transform.position, stateMachine.transform.forward * 5.0f, Color.red);
-
                     // Calculate the angle between target position and customer forward vector
-                    float fromToDelta = Vector3.Angle(stateMachine.transform.forward, targetRot);
+                    float fromToDelta = stateMachine.RotateTowardsTargetSmoothDamp(stateMachine.transform, stateMachine.taskDestination, ref angularVelocity, stateMachine.rotationSpeed);
 
                     // Stop rotation if angle between target and forward vector is lower than margin of error
                     if (fromToDelta <= marginOfErrorAmount)
@@ -191,7 +178,10 @@ public class GetProductState : NormalCustomer_SM
             stateMachine.taskDestination = shelf.transform;
 
             // Get pickup position
-            stateMachine.taskDestinationPosition = shelf.GetPickupPositions()[Random.Range(0, shelf.GetPickupPositions().Length)];
+            if (shelf.GetPickupPositions().Length == 1)
+                stateMachine.taskDestinationPosition = shelf.GetPickupPositions()[0];
+            else
+                stateMachine.taskDestinationPosition = EssentialFunctions.GetRandomFromArray(shelf.GetPickupPositions());
 
             return true;
         }

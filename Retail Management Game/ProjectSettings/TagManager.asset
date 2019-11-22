@@ -9,6 +9,7 @@ TagManager:
   - Register
   - Customer
   - MapExitPoint
+  - StockCrate
   layers:
   - Default
   - TransparentFX
@@ -19,7 +20,7 @@ TagManager:
   - 
   - 
   - Interactive
-  - 
+  - Character
   - 
   - 
   - 

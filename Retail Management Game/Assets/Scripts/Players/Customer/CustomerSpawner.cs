@@ -5,7 +5,7 @@ using UnityEngine;
 public class CustomerSpawner : MonoBehaviour
 {
     [SerializeField] float spawnRate = 5.0f;
-    [SerializeField] GameObject customer;
+    [SerializeField] GameObject customer = null;
 
     float timer = 0.0f;
 
