@@ -26,32 +26,32 @@ public static class EssentialFunctions
         // Top Vectors
 
         // Back Left
-        corners[0] = t.position + (new Vector3(-t.localScale.x, t.localScale.y, t.localScale.z)     * 0.5f);
+        corners[0] = t.position + (new Vector3(-t.localScale.x, t.localScale.y, t.localScale.z) * 0.5f);
 
         // Back Right
-        corners[1] = t.position + (new Vector3(t.localScale.x, t.localScale.y, t.localScale.z)      * 0.5f);
+        corners[1] = t.position + (new Vector3(t.localScale.x, t.localScale.y, t.localScale.z) * 0.5f);
 
         // Front Left
-        corners[2] = t.position + (new Vector3(-t.localScale.x, t.localScale.y, -t.localScale.z)    * 0.5f);
+        corners[2] = t.position + (new Vector3(-t.localScale.x, t.localScale.y, -t.localScale.z) * 0.5f);
 
         // Front Right
-        corners[3] = t.position + (new Vector3(t.localScale.x, t.localScale.y, -t.localScale.z)     * 0.5f);
+        corners[3] = t.position + (new Vector3(t.localScale.x, t.localScale.y, -t.localScale.z) * 0.5f);
 
 
         /************************************************/
         // Bottom Vectors
 
         // Back Left
-        corners[4] = t.position + (new Vector3(-t.localScale.x, -t.localScale.y, t.localScale.z)    * 0.5f);
+        corners[4] = t.position + (new Vector3(-t.localScale.x, -t.localScale.y, t.localScale.z) * 0.5f);
 
         // Back Right
-        corners[5] = t.position + (new Vector3(t.localScale.x, -t.localScale.y, t.localScale.z)     * 0.5f);
+        corners[5] = t.position + (new Vector3(t.localScale.x, -t.localScale.y, t.localScale.z) * 0.5f);
 
         // Front Left
-        corners[6] = t.position + (new Vector3(-t.localScale.x, -t.localScale.y, -t.localScale.z)   * 0.5f);
+        corners[6] = t.position + (new Vector3(-t.localScale.x, -t.localScale.y, -t.localScale.z) * 0.5f);
 
         // Front Right
-        corners[7] = t.position + (new Vector3(t.localScale.x, -t.localScale.y, -t.localScale.z)    * 0.5f);
+        corners[7] = t.position + (new Vector3(t.localScale.x, -t.localScale.y, -t.localScale.z) * 0.5f);
 
         return corners;
     }
@@ -165,7 +165,7 @@ public static class EssentialFunctions
         }
         foreach (Collider c in inPickupArea)
         {
-            
+
         }
 
         // Return the closest item
@@ -202,5 +202,13 @@ public static class EssentialFunctions
             return array[0];
         else
             return array[Random.Range(0, array.Length)];
+    }
+
+    public static float GetCurrentAnimationClipPosition(Animator animator)
+    {
+        AnimatorStateInfo animationState = animator.GetCurrentAnimatorStateInfo(0);
+        AnimatorClipInfo[] animatorClips = animator.GetCurrentAnimatorClipInfo(0);
+
+        return animatorClips[0].clip.length * animationState.normalizedTime;
     }
 }

@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class ShelfContainer : MonoBehaviour
 {
+    [Header("Shelf Status")]
     [SerializeField] private StockTypes shelfStockType = StockTypes.None;
     [SerializeField] private int stockAmount = 0;
     [SerializeField] private int shelfSize = 10;
@@ -24,10 +26,16 @@ public class ShelfContainer : MonoBehaviour
 
     const float collisionSensitivity = 2.0f;
 
+    [Header("References")]
+    [SerializeField] TextMeshProUGUI debugText = null;
+    
     Vector3[] pickupPositions = null;
 
     const float stuckObjectMaxTime = 1.0f;
+    int previousStockAmount = 0;
     Dictionary<Transform, float> stuckObjects = new Dictionary<Transform, float>();
+
+    List<ShelfContainer> adjacentShelves = new List<ShelfContainer>();
 
     MapManager mapManager;
 
@@ -67,7 +75,23 @@ public class ShelfContainer : MonoBehaviour
         }
 
         UpdatePickupPositionsArray();
+
+        adjacentShelves.Clear();
+
+        Collider[] adjacentObjects = Physics.OverlapBox(transform.position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(1.1f, 1.0f, 1.1f));
+
+        foreach (Collider adjacentObject in adjacentObjects)
+        {
+            if (adjacentObject.CompareTag("Shelf"))
+            {
+                ShelfContainer shelfContainer = adjacentObject.GetComponent<ShelfContainer>();
+                if (shelfContainer != this && shelfContainer.shelfStockType == shelfStockType)
+                    adjacentShelves.Add(adjacentObject.GetComponent<ShelfContainer>());
+            }
+        }
     }
+
+    #region Collisions
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -75,17 +99,45 @@ public class ShelfContainer : MonoBehaviour
 
         GameObject other = contact.otherCollider.transform.root.gameObject;
 
-        Debug.Log(collision.relativeVelocity.magnitude);
+        //Debug.Log(collision.relativeVelocity.magnitude);
 
         // Add products to the shelf if it hits it hard enough
         if (collision.relativeVelocity.magnitude < collisionSensitivity) return;
 
-        if (other.CompareTag("Product"))
+        switch (other.tag)
         {
-            int result = AddStock(other.GetComponent<StockItem>().GetStockType());
-            
-            if (result == 0)
-                Destroy(other);
+            case "Product":
+                {
+                    Debug.Log("Adding product to shelf!");
+
+                    StockItem stockItem = other.GetComponent<StockItem>();
+
+                    // Claim the product before any other shelf can >:D
+                    if (stockItem.IsClaimed()) return;
+                    else stockItem.ClaimItem(gameObject);
+
+                    int result = AddStock(stockItem.GetStockType());
+
+                    if (result == 0)
+                        Destroy(other);
+
+                    break;
+                }
+            case "StockCrate":
+                {
+                    StockCrate stockCrate = other.GetComponent<StockCrate>();
+
+                    // Claim the product before any other shelf can >:D
+                    if (stockCrate.IsClaimed()) return;
+                    else stockCrate.ClaimItem(gameObject);
+
+                    int result = AddStock(stockCrate.GetQuantity(), stockCrate.GetStockType());
+
+                    if (result == 0)
+                        Destroy(other);
+
+                    break;
+                }
         }
     }
 
@@ -112,6 +164,8 @@ public class ShelfContainer : MonoBehaviour
         }
     }
 
+    #endregion
+
     // Start is called before the first frame update
     void Start()
     {
@@ -119,7 +173,23 @@ public class ShelfContainer : MonoBehaviour
 
         // Get MapManager
         mapManager = MapManager.GetInstance();
+
+        previousStockAmount = stockAmount;
+
+        UpdateDebugText();
     }
+
+    private void Update()
+    {
+        if (stockAmount != previousStockAmount)
+        {
+            UpdateDebugText();
+        }
+
+        previousStockAmount = stockAmount;
+    }
+
+    #region Getters and Setters
 
     public StockTypes ShelfStockType
     {
@@ -137,6 +207,8 @@ public class ShelfContainer : MonoBehaviour
         }
     }
 
+    
+
     public int MaxShelfAmount()
     {
         return shelfSize;
@@ -145,12 +217,6 @@ public class ShelfContainer : MonoBehaviour
     public int StockAmount()
     {
         return stockAmount;
-    }
-
-    void EmptyShelf()
-    {
-        stockAmount = 0;
-        ShelfStockType = StockTypes.None;
     }
 
     public int GetStock(int amount = 1)
@@ -184,10 +250,9 @@ public class ShelfContainer : MonoBehaviour
     /// <returns>The remainder</returns>
     public int AddStock(int amount, StockTypes stockType)
     {
-        int tempAmount = amount;
 
         // If this ever happens, you're actually dumb
-        if (tempAmount <= 0)
+        if (amount <= 0)
         {
             Debug.LogWarning("Uhhhhh... why are you adding nothing to the shelf? Tf?");
         }
@@ -203,31 +268,69 @@ public class ShelfContainer : MonoBehaviour
         else if (stockType != ShelfStockType)
         {
             // Stocks do not match! - do nothing
-            return tempAmount;
+            return amount;
         }
 
-        // Check if there's enough space to add amount of stock
-        if (tempAmount > shelfSize)
-        {
-            // Add max of shelf
+        // Fill shelves
+        int availableShelfSpace = shelfSize - stockAmount;
 
-            // Remove amount
-            tempAmount -= shelfSize;
-
-            // Max out shelf
+        stockAmount += amount;
+        if (stockAmount > shelfSize) 
             stockAmount = shelfSize;
-        }
-        else
-        {
-            // Add amount
-            stockAmount += tempAmount;
 
-            tempAmount = 0;
-        }
+        int remainingStock = amount - availableShelfSpace;
+
+        if (remainingStock < 0) 
+            remainingStock = 0;
 
         mapManager.UpdateAvailableStockTypes();
 
-        return tempAmount;
+        // Add to adjacent shelves
+        if (remainingStock > 0)
+        {
+            // No shelves adjacent - just return the remaining stock
+            if (adjacentShelves.Count == 0) 
+                return remainingStock;
+
+            // All adjacent shelves are full - return the remaining stock
+            if (IsAllAdjacentShelvesFull()) 
+                return remainingStock;
+
+            // Add remaining stock to adjacent shelves
+            else
+            {
+                ShelfContainer[] shelvesWithSpace = GetAdjacentShelvesWithSpace();
+
+                // Add all remaining stock to neighbouring shelf
+                if (shelvesWithSpace.Length == 1)
+                    return shelvesWithSpace[0].AddStock(amount, stockType);
+
+                // Evenly divide stock to all adjacent shelves including remaining
+                else
+                {
+                    int shelfQuantity = shelvesWithSpace.Length;
+                    int shelfStockDividedQuantity = Mathf.FloorToInt(remainingStock / shelfQuantity);
+                    int shelfStockRemaining = remainingStock % shelfQuantity;
+
+                    for (int i = 0; i < shelvesWithSpace.Length; i++)
+                    {
+                        int amountToAdd = shelfStockDividedQuantity;
+
+                        // Add remaining stock to shelves
+                        if (shelfStockRemaining > 0)
+                        {
+                            amountToAdd++;
+                            shelfStockRemaining--;
+                        }
+
+                        return shelvesWithSpace[i].AddStock(amountToAdd, stockType);
+                    }
+                }
+            }
+
+        }
+
+        return remainingStock;
     }
 
     /// <summary>
@@ -238,6 +341,23 @@ public class ShelfContainer : MonoBehaviour
     public int AddStock(StockTypes stockType)
     {
         return AddStock(1, stockType);
+    }
+
+    public int AddCrate(StockCrate crate)
+    {
+        int remainingStock = crate.SetQuantity(AddStock(crate.GetQuantity(), crate.GetStockType()));
+        if (remainingStock < 0) remainingStock = 0;
+        return remainingStock;
+    }
+
+    #endregion
+
+    #region Helpers
+
+    void EmptyShelf()
+    {
+        stockAmount = 0;
+        ShelfStockType = StockTypes.None;
     }
 
     /// <summary>
@@ -284,4 +404,42 @@ public class ShelfContainer : MonoBehaviour
     {
         return stockAmount == 0;
     }
+
+    public bool IsFull()
+    {
+        return stockAmount == shelfSize;
+    }
+
+    bool IsAllAdjacentShelvesFull()
+    {
+        bool isAllFull = true;
+
+        for (int i = 0; i < adjacentShelves.Count; i++)
+        {
+            if (!adjacentShelves[i].IsFull())
+                isAllFull = false;
+        }
+
+        return isAllFull;
+    }
+
+    ShelfContainer[] GetAdjacentShelvesWithSpace()
+    {
+        List<ShelfContainer> shelvesWithSpace = new List<ShelfContainer>();
+
+        for (int i = 0; i < adjacentShelves.Count; i++)
+        {
+            if (!adjacentShelves[i].IsFull())
+                shelvesWithSpace.Add(adjacentShelves[i]);
+        }
+
+        return shelvesWithSpace.ToArray();
+    }
+
+    void UpdateDebugText()
+    {
+        debugText.SetText(stockAmount.ToString());
+    }
+
+    #endregion
 }

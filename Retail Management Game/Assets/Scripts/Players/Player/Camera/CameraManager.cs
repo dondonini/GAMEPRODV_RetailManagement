@@ -153,11 +153,11 @@ public class CameraManager : MonoBehaviour
     /// <returns>Bounds of all players</returns>
     Bounds GetPlayersBounds()
     {
-        Bounds tempBounds = new Bounds(gameManager.Players()[0].position, Vector3.zero);
+        Bounds tempBounds = new Bounds(gameManager.GetPlayers()[0].position, Vector3.zero);
 
-        for (int i = 1; i < gameManager.Players().Length; i++)
+        for (int i = 1; i < gameManager.GetPlayers().Length; i++)
         {
-            tempBounds.Encapsulate(gameManager.Players()[i].position);
+            tempBounds.Encapsulate(gameManager.GetPlayers()[i].position);
         }
 
         return tempBounds;

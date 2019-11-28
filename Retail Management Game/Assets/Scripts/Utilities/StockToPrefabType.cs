@@ -5,7 +5,7 @@ public class StockToPrefabType
 {
     [SerializeField] int stockPrice = 0;
     [SerializeField] StockTypes stockType = StockTypes.None;
-    [SerializeField] Sprite stockThumbnail = null;
+    [SerializeField] Material stockThumbnail = null;
     [SerializeField] GameObject[] prefabs = null;
 
     public StockTypes GetStockType()
@@ -23,7 +23,7 @@ public class StockToPrefabType
         return prefabs;
     }
 
-    public Sprite GetThumbnail()
+    public Material GetThumbnail()
     {
         return stockThumbnail;
     }

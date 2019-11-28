@@ -11,8 +11,14 @@ public class MapManager : MonoBehaviour
     [Header("Found Registers")]
     [SerializeField] List<CashRegister> cashRegisters = new List<CashRegister>();
 
+    [Header("Found Customer Spawners")]
+    [SerializeField] List<CustomerSpawner> customerSpawners = new List<CustomerSpawner>();
+
     [Header("Found Exit Points")]
     [SerializeField] List<Transform> exitPoints = new List<Transform>();
+
+    [Header("Trucks")]
+    [SerializeField] List<TruckDriver> trucks = new List<TruckDriver>();
 
     [Header("Prefabs")]
     public StockToPrefabType[] stockPrefabs;
@@ -161,12 +167,24 @@ public class MapManager : MonoBehaviour
         cashRegisters.AddRange(validRegisters);
 
         //************************************************************************/
+        currentLoadingTask = "Collecting customer spawn locations...";
+
+        GameObject[] temp_CustomerSpawner = GameObject.FindGameObjectsWithTag("CustomerSpawn");
+
+        for (int customerSpawner = 0; customerSpawner < temp_CustomerSpawner.Length; customerSpawner++)
+        {
+            if (customerSpawners.Contains(temp_CustomerSpawner[customerSpawner].GetComponent<CustomerSpawner>())) continue;
+            customerSpawners.Add(temp_CustomerSpawner[customerSpawner].GetComponent<CustomerSpawner>());
+        }
+
+        //************************************************************************/
         currentLoadingTask = "Collecting exit points...";
 
         GameObject[] temp_ExitPoints = GameObject.FindGameObjectsWithTag("MapExitPoint");
 
         for (int point = 0; point < temp_ExitPoints.Length; point++)
         {
+            if (exitPoints.Contains(temp_ExitPoints[point].transform)) continue;
             exitPoints.Add(temp_ExitPoints[point].transform);
         }
 
@@ -249,6 +267,11 @@ public class MapManager : MonoBehaviour
         return EssentialFunctions.GetRandomFromArray(cashRegisters);
     }
 
+    public TruckDriver GetRandomTruck()
+    {
+        return EssentialFunctions.GetRandomFromArray(trucks);
+    }
+
     public void UpdateAvailableStockTypes()
     {
         List<StockTypes> updatedList = new List<StockTypes>();
@@ -286,6 +309,11 @@ public class MapManager : MonoBehaviour
     public Transform[] GetMapExitPoints()
     {
         return exitPoints.ToArray();
+    }
+
+    public CustomerSpawner GetRandomCustomerSpawner()
+    {
+        return EssentialFunctions.GetRandomFromArray(customerSpawners);
     }
 
     /// <summary>
@@ -350,7 +378,7 @@ public class MapManager : MonoBehaviour
             return 0;
     }
 
-    public Sprite GetStockTypeThumbnail(StockTypes stockType)
+    public Material GetStockTypeThumbnail(StockTypes stockType)
     {
         StockToPrefabType stockToPrefabType = null;
 

@@ -36,12 +36,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] CharacterController characterController = null;
     [SerializeField] Transform equippedPosition = null;
     [SerializeField] BoxCollider pickupArea = null;
+    [SerializeField] Rigidbody rigidBody = null;
     GameObject equippedItem = null;
 
     /************************************************/
     // Runtime Variables
 
     Vector3 playerDirection = Vector3.zero;
+    Vector3 playerVelocity = Vector3.zero;
+    Vector3 previousPlayerPosition = Vector3.zero;
     bool throwItem = false;
     bool justPickedUp = false;
 
@@ -226,6 +229,8 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         mapManager = MapManager.GetInstance();
+
+        previousPlayerPosition = transform.position;
     }
 
     // Update is called once per frame
@@ -263,7 +268,10 @@ public class PlayerController : MonoBehaviour
         }
         #endregion
 
+        playerVelocity = (transform.position - previousPlayerPosition) * Time.deltaTime;
+
         //closestInteractible = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance);
+        previousPlayerPosition = transform.position;
     }
 
     private void FixedUpdate()
@@ -282,9 +290,9 @@ public class PlayerController : MonoBehaviour
 
         // Ease rotation
         Vector3 rotationResult = Vector3.Lerp(
-            characterController.transform.position + characterController.transform.forward,
             characterController.transform.position + relativeDirection,
-            rotationSpeed
+            characterController.transform.position + characterController.transform.forward,
+            rotationSpeed * playerVelocity.normalized.magnitude
         );
 
         // Rotate player

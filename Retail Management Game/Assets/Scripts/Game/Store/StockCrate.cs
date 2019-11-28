@@ -8,11 +8,14 @@ public class StockCrate : MonoBehaviour
     [SerializeField] StockTypes stockType = StockTypes.None;
     [SerializeField] int stockQuantity = 0;
     [SerializeField] int maxQuantity = 10;
-    [SerializeField] Image[] imageFaces;
+    [SerializeField] float billboardDistance = 1.0f;
+    [SerializeField] Renderer billboardRenderer = null;
 
     MapManager mapManager = null;
 
     StockTypes previousStockType = StockTypes.None;
+
+    GameObject firstClaim = null;
 
     private void Start()
     {
@@ -29,7 +32,15 @@ public class StockCrate : MonoBehaviour
             UpdateThumbnail();
         }
 
+        if (stockQuantity == 0)
+            Destroy(gameObject);
+
         previousStockType = stockType;
+    }
+
+    private void LateUpdate()
+    {
+        billboardRenderer.transform.position = transform.position + new Vector3(0.25f, billboardDistance, -0.25f);
     }
 
     public StockTypes GetStockType()
@@ -42,24 +53,38 @@ public class StockCrate : MonoBehaviour
         return stockQuantity;
     }
 
-    public bool AddQuantity()
+    public int SetQuantity(int amount)
     {
-        if (stockQuantity >= maxQuantity)
-            return false;
-        else
-        {
-            stockQuantity++;
-            return true;
-        }
+        int difference = stockQuantity - amount;
+
+        stockQuantity = amount;
+
+        return difference;
+    }
+
+    public int AddQuantity(int amount)
+    {
+        int remainingStock = amount - (maxQuantity - stockQuantity);
+
+        stockQuantity += amount;
+        if (stockQuantity > maxQuantity) stockQuantity = maxQuantity;
+
+        return (remainingStock > 0) ? remainingStock : 0;
     }
 
     private void UpdateThumbnail()
     {
-        Sprite thumbnail = mapManager.GetStockTypeThumbnail(stockType);
+        Material thumbnail = mapManager.GetStockTypeThumbnail(stockType);
 
-        for (int i = 0; i < imageFaces.Length; i++)
-        {
-            imageFaces[i].sprite = thumbnail;
-        }
+        billboardRenderer.material = thumbnail;
+    }
+    public GameObject IsClaimed()
+    {
+        return firstClaim;
+    }
+
+    public void ClaimItem(GameObject other)
+    {
+        firstClaim = other;
     }
 }
