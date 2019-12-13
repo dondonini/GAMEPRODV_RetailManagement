@@ -46,6 +46,7 @@ public class PurchaseState : NormalCustomer_SM
 
         waitTime = stateMachine.purchaseDuration;
 
+        stateMachine.patienceBillboard.gameObject.SetActive(true);
         stateMachine.patienceAnimator.SetBool("Show", false);
         stateMachine.patienceBillboard.gameObject.SetActive(false);
     }

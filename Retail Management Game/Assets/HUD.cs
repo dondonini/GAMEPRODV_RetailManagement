@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 using System.Globalization;
+using UnityEngine.SceneManagement;
 
 public class HUD : MonoBehaviour
 {
@@ -130,5 +131,11 @@ public class HUD : MonoBehaviour
         }
 
         u_GameOver.text = message;
+    }
+
+    public void ToMainMenu()
+    {
+        Time.timeScale = 1.0f;
+        SceneManager.LoadSceneAsync("MainMenu");
     }
 }

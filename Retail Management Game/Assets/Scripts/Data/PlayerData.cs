@@ -97,26 +97,33 @@ public static class PlayerData
             return;
         }
 
-        string key = currentSlot.ToString();
-        string saveFileName = key + saveFileExtension;
+        string slotKey = currentSlot.ToString();
+        string saveFileName = slotKey + saveFileExtension;
 
         DataInfo newData = new DataInfo();
 
-        if (!ES3.KeyExists(key))
+        if (!ES3.FileExists(saveFileName))
         {
             // New slot!
-
+            Debug.Log("Slot save not found! - Building new save...");
             newData.money = 0;
         }
         else
         {
             // Unpack data
-
-            newData.money = ES3.Load<int>(key + moneyKey, saveFileName);
+            Debug.Log("Slot save found! - Loading data...");
+            newData.money = ES3.Load<int>(slotKey + moneyKey, saveFileName);
         }
 
         currentInfo = null;
         currentInfo = newData;
+
+        SaveSlotData();
+
+        if (currentInfo != null)
+        {
+            Debug.Log("Slot was successfully loaded!");
+        }
     }
 
     public static bool LoadSlotSegmentData(string key)
@@ -130,6 +137,11 @@ public static class PlayerData
         string slotKey = currentSlot.ToString();
         string saveFileName = slotKey + saveFileExtension;
 
+        if (!ES3.KeyExists(slotKey + key))
+        {
+            return false;
+        }
+
         return ES3.Load<bool>(slotKey + key, saveFileName);
     }
 
@@ -138,7 +150,7 @@ public static class PlayerData
         string slotKey = _slot.ToString();
         string saveFileName = slotKey + saveFileExtension;
 
-        if (ES3.KeyExists(slotKey))
+        if (!ES3.FileExists(saveFileName))
         {
             return null;
         }
@@ -183,5 +195,15 @@ public static class PlayerData
     public static void UnloadData()
     {
         currentInfo = null;
+    }
+
+    public static bool IsASlotLoaded()
+    {
+        return currentInfo != null;
+    }
+
+    public static DataInfo GetCurrentDataInfo()
+    {
+        return currentInfo;
     }
 }

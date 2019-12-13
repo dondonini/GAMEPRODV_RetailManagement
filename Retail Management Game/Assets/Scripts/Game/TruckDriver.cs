@@ -11,7 +11,7 @@ public class TruckDriver : MonoBehaviour
     public float pushVariationAmount = 2.0f;
     public float spawnFrequency = 1.0f;
     [Range(0.0f, 0.1f)]
-    public float directionVeriation = 0.1f;
+    public float directionVariation = 0.1f;
     [SerializeField] Transform spawner = null;
     [SerializeField] Animator animator = null;
 
@@ -141,8 +141,8 @@ public class TruckDriver : MonoBehaviour
     {
         // Add variation to throwing angle
         Vector3 direction = -Vector3.forward;
-        direction.x = Random.Range(-directionVeriation, directionVeriation);
-        direction.y = Random.Range(-directionVeriation, directionVeriation);
+        direction.x = Random.Range(-directionVariation, directionVariation);
+        direction.y = Random.Range(-directionVariation, directionVariation);
 
         Debug.DrawRay(spawner.position, direction, Color.red, 1.0f);
 

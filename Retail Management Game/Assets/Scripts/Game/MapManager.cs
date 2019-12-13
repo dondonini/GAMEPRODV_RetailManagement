@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MapManager : MonoBehaviour
 {
@@ -202,6 +203,8 @@ public class MapManager : MonoBehaviour
 
     bool LoadPlayerData()
     {
+        if (unlockableSegments.Length == 0) return false;
+
         bool noUnlocks = true;
         for(int i = 0; i < unlockableSegments.Length; i++)
         {

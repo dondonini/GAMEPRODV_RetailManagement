@@ -141,7 +141,7 @@ public class PlayerController : MonoBehaviour
     public void OnPickup(InputAction.CallbackContext context)
     {
         if (gameManager && gameManager.IsGameOver())
-            Debug.Log("Heh");
+            gameManager.ToScoreBoard();
 
 
         switch (currentPlayerMode)

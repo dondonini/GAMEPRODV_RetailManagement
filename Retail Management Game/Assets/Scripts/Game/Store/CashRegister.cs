@@ -13,6 +13,8 @@ public class CashRegister : MonoBehaviour
         Right,
     }
 
+
+    [SerializeField] bool autoMode = false;
     [SerializeField] int maxQueueLength = 5;
     [Tooltip("The gap size between customers in the queue.")]
     [SerializeField] float queueGap = 0.1f;
@@ -36,8 +38,11 @@ public class CashRegister : MonoBehaviour
     //*************************************************************************
     // Managers
 
-    GameManager gameManager;
-    MapManager mapManager;
+    GameManager gameManager = null;
+    MapManager mapManager = null;
+    GameInfo gameInfo = null;
+
+    float autoTimer = 0.0f;
 
     private void OnValidate()
     {
@@ -67,12 +72,23 @@ public class CashRegister : MonoBehaviour
     {
         gameManager = GameManager.GetInstance();
         mapManager = MapManager.GetInstance();
+        gameInfo = GameInfo.GetInstance();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (autoMode)
+        {
+            if (autoTimer >= 3.0f)
+            {
+                CashCustomerOut();
+                autoTimer = 0.0f;
+            }
+
+            autoTimer += Time.deltaTime;
+        }
+            
     }
 
     public void PurchaseProduct(Transform product)
@@ -83,7 +99,11 @@ public class CashRegister : MonoBehaviour
 
             if (stockItem)
             {
-                gameManager.AddScore(mapManager.GetStockTypePrice(stockItem.GetStockType()));
+                if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "MainMenu")
+                    gameManager.AddScore(mapManager.GetStockTypePrice(stockItem.GetStockType()));
+
+                if (gameInfo)
+                    gameInfo.AddProductSold(stockItem.GetStockType());
 
                 PushPriceToaster(mapManager.GetStockTypePrice(stockItem.GetStockType()));
 

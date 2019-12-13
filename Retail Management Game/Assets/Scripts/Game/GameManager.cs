@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public enum GameState
 {
@@ -488,6 +489,8 @@ public class GameManager : MonoBehaviour
         HUDScript.SetGameOver(winReason);
 
         PlayerData.currentInfo.profit = profit;
+        PlayerData.currentInfo.money = profit;
+        PlayerData.SaveSlotData();
 
         StartCoroutine(SetSlowDown(endSlowDownDuration));
     }
@@ -499,6 +502,7 @@ public class GameManager : MonoBehaviour
 
     public void ToScoreBoard()
     {
-
+        Time.timeScale = 1.0f;
+        SceneManager.LoadSceneAsync("ScoreScene");
     }
 }

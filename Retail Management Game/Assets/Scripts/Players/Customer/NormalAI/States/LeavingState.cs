@@ -102,7 +102,8 @@ public class LeavingState : NormalCustomer_SM
 
                     if (stateMachine.IsStateMachineActive())
 
-                    stateMachine.gameManager.RemoveCustomer(stateMachine.transform);
+                    if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "MainMenu")
+                        stateMachine.gameManager.RemoveCustomer(stateMachine.transform);
 
                     // Stop statemachine from ticking... it's okay sweet prince, things will be okay...
                     stateMachine.DisableStateMachine();

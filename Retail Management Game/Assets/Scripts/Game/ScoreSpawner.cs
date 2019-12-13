@@ -4,36 +4,47 @@ using UnityEngine;
 
 public class ScoreSpawner : MonoBehaviour
 {
-    public Vector3 forceDirection = new Vector3(0.0f, -1.0f, 0.0f);
     public float force = 100.0f;
+    [Range(0.0f, 0.1f)]
+    public float directionVariation = 0.1f;
 
-    public GameObject test;
+    //public GameObject test;
 
 
-    float timer = 0.0f;
-    private void OnValidate()
-    {
-        forceDirection = forceDirection.normalized;
-    }
+    //float timer = 0.0f;
 
-    public void SpawnObject(GameObject other)
+    public GameObject SpawnObject(GameObject other)
     {
         GameObject newObject = Instantiate(other) as GameObject;
 
         newObject.transform.position = transform.position;
 
         Rigidbody rb = newObject.GetComponent<Rigidbody>();
-        rb.AddForce(forceDirection * force);
+        rb.AddForce(CalculatePushDirection() * force);
+
+        return newObject;
     }
 
-    private void Update()
+    Vector3 CalculatePushDirection()
     {
-        if (timer >= 0.1f)
-        {
-            SpawnObject(test);
-            timer = 0.0f;
-        }
+        // Add variation to throwing angle
+        Vector3 direction = -Vector3.forward;
+        direction.x = Random.Range(-directionVariation, directionVariation);
+        direction.y = Random.Range(-directionVariation, directionVariation);
 
-        timer += Time.deltaTime;
+        Debug.DrawRay(transform.position, direction, Color.red, 1.0f);
+
+        return transform.TransformVector(direction);
     }
+
+    //private void Update()
+    //{
+    //    if (timer >= 0.1f)
+    //    {
+    //        SpawnObject(test);
+    //        timer = 0.0f;
+    //    }
+
+    //    timer += Time.deltaTime;
+    //}
 }
