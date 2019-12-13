@@ -45,9 +45,6 @@ public class CameraManager : MonoBehaviour
         if (cameraAim)
             Gizmos.DrawWireSphere(cameraAim.position, 0.1f);
 
-        if (mainCamera)
-            Gizmos.DrawFrustum(mainCamera.transform.position, mainCamera.fieldOfView, mainCamera.farClipPlane, mainCamera.nearClipPlane, mainCamera.aspect);
-
         Gizmos.color = Color.blue;
 
         if (cameraAim && mainCamera)
@@ -69,6 +66,17 @@ public class CameraManager : MonoBehaviour
         // Caching
 		gameManager = GameManager.GetInstance();
 
+        // Set camera to starting position
+        Vector3 tiltAddedPosition = Vector3.Lerp(GetViewableBounds().center, GetPlayersBounds().center, tildEffectAmount);
+
+        transform.position = CalculateCameraPosition();
+        transform.eulerAngles = new Vector3(cameraAngleRotation, 0.0f, 0.0f);
+
+        mainCamera.transform.localPosition = new Vector3(0.0f, 0.0f, cameraDistance);
+
+        cameraAim.position = tiltAddedPosition;
+
+        mainCamera.transform.LookAt(cameraAim);
     }
 
     void Update()
@@ -110,7 +118,19 @@ public class CameraManager : MonoBehaviour
             lowestFOV = GetCameraFOVHeight(mainCamera) * 0.5f;
         }
 
+        Vector3 aimPosition;
+
         Bounds viewables = GetViewableBounds();
+
+        if (gameManager.GetPlayers().Length == 1)
+        {
+            aimPosition = gameManager.GetPlayers()[0].position;
+        }
+        else
+        {
+            
+            aimPosition = viewables.center;
+        }
 
         // Calculate opposite
         float opp = Mathf.Max(viewables.size.x, viewables.size.z) * 0.5f;
@@ -125,7 +145,7 @@ public class CameraManager : MonoBehaviour
         cameraDistance = -(opp / Mathf.Tan(halfFOV));
 
         // Update CameraPivot
-        return viewables.center;
+        return aimPosition;
     }
 
     /// <summary>
@@ -168,7 +188,7 @@ public class CameraManager : MonoBehaviour
     /// </summary>
     /// <param name="cam">The camera to take the horizontal FOV from.</param>
     /// <returns>The vertial field of view</returns>
-    public float GetCameraFOVHeight(Camera cam)
+    public static float GetCameraFOVHeight(Camera cam)
     {
         // Get camera FOV
         float FOV_W = cam.fieldOfView;
@@ -184,7 +204,7 @@ public class CameraManager : MonoBehaviour
     /// Gets the current resolution of the game window
     /// </summary>
     /// <returns>Screen resolution in Vector2</returns>
-    public Vector2 GetScreenResolution()
+    public static Vector2 GetScreenResolution()
     {
         return new Vector2(Screen.width, Screen.height);
     }

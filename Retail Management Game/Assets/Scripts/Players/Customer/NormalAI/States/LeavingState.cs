@@ -33,6 +33,8 @@ public class LeavingState : NormalCustomer_SM
         stateMachine.taskDestination = null;
         stateMachine.taskDestinationPosition = Vector3.zero;
         exitPoint = null;
+
+        EjectEquippedItem();
     }
 
     public void ExitState()
@@ -100,6 +102,8 @@ public class LeavingState : NormalCustomer_SM
 
                     if (stateMachine.IsStateMachineActive())
 
+                    stateMachine.gameManager.RemoveCustomer(stateMachine.transform);
+
                     // Stop statemachine from ticking... it's okay sweet prince, things will be okay...
                     stateMachine.DisableStateMachine();
 
@@ -109,7 +113,6 @@ public class LeavingState : NormalCustomer_SM
                     break;
                 }
         }
-
         stateMachine.UpdateActionStatus(currentAction.ToString());
     }
 
@@ -130,5 +133,18 @@ public class LeavingState : NormalCustomer_SM
         stateMachine.taskDestinationPosition = exitPoint.position;
 
         return true;
+    }
+
+    bool EjectEquippedItem()
+    {
+        if (stateMachine.IsHoldingItem())
+        {
+            Rigidbody rb = stateMachine.UnequipItem().GetComponent<Rigidbody>();
+
+            rb.AddForce(0.0f, 500.0f, 0.0f);
+
+            return true;
+        }
+        return false;
     }
 }

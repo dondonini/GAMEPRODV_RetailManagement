@@ -23,6 +23,9 @@ public class MapManager : MonoBehaviour
     [Header("Prefabs")]
     public StockToPrefabType[] stockPrefabs;
 
+    [Header("Level Unlocks")]
+    public UnlockSegment[] unlockableSegments;
+
     // Loading Stats
     [ReadOnly] public bool isDoneLoading = false;
     [HideInInspector]
@@ -38,6 +41,8 @@ public class MapManager : MonoBehaviour
     {
         if (tasksToDo != 0)
             finishedPercentage = tasksDone / tasksToDo;
+
+        UpdateSegments();
     }
 
     private void Awake()
@@ -58,6 +63,8 @@ public class MapManager : MonoBehaviour
 
     void LoadMap()
     {
+        UpdateSegments();
+
         //************************************************************************/
         currentLoadingTask = "Collecting shelves...";
 
@@ -188,7 +195,26 @@ public class MapManager : MonoBehaviour
             exitPoints.Add(temp_ExitPoints[point].transform);
         }
 
+        LoadPlayerData();
+
         isDoneLoading = true;
+    }
+
+    bool LoadPlayerData()
+    {
+        bool noUnlocks = true;
+        for(int i = 0; i < unlockableSegments.Length; i++)
+        {
+            unlockableSegments[i].enableSegment = PlayerData.LoadSlotSegmentData(unlockableSegments[i].m_segmentKey);
+
+            if (unlockableSegments[i].enableSegment)
+                noUnlocks = false;
+        }
+
+        if (noUnlocks)
+            unlockableSegments[0].enableSegment = true;
+
+        return true;
     }
 
     // Update is called once per frame
@@ -378,7 +404,7 @@ public class MapManager : MonoBehaviour
             return 0;
     }
 
-    public Material GetStockTypeThumbnail(StockTypes stockType)
+    public Sprite GetStockTypeThumbnail(StockTypes stockType)
     {
         StockToPrefabType stockToPrefabType = null;
 
@@ -397,4 +423,52 @@ public class MapManager : MonoBehaviour
     }
 
     #endregion
+
+    public void EnableSegment(string segmentKey)
+    {
+        for (int i = 0; i < unlockableSegments.Length; i++)
+        {
+            if (unlockableSegments[i].CompareKey(segmentKey))
+                unlockableSegments[i].enableSegment = true;
+        }
+        UpdateSegments(GetSegment(segmentKey));
+    }
+
+    void UpdateSegments()
+    {
+        // Check unlockable list for enabled segments
+        for (int i = 0; i < unlockableSegments.Length; i++)
+        {
+            UpdateSegments(unlockableSegments[i]);
+        }
+    }
+
+    UnlockSegment GetSegment(string segmentKey)
+    {
+        for (int i = 0; i < unlockableSegments.Length; i++)
+        {
+            if (unlockableSegments[i].CompareKey(segmentKey))
+                return unlockableSegments[i];
+        }
+        return null;
+    }
+
+    void UpdateSegments(UnlockSegment selectedSegment)
+    {
+        if (selectedSegment.IsEnabled())
+        {
+            // Disable segments that are not compatible with this segment
+            for (int segKey = 0; segKey < selectedSegment.m_incompatibleKeys.Length; segKey++)
+            {
+                for (int incomp = 0; incomp < unlockableSegments.Length; incomp++)
+                {
+                    if (unlockableSegments[incomp].CompareKey(selectedSegment.m_incompatibleKeys[segKey]))
+                        unlockableSegments[incomp].enableSegment = false;
+                }
+            }
+        }
+
+        // Enable/Disable segment
+        selectedSegment.UpdateSegment();
+    }
 }

@@ -118,7 +118,7 @@ public class GetProductState : NormalCustomer_SM
             case GetProductActions.Turning:
                 {
                     // Calculate the angle between target position and customer forward vector
-                    float fromToDelta = stateMachine.RotateTowardsTargetSmoothDamp(stateMachine.transform, stateMachine.taskDestination, ref angularVelocity, stateMachine.rotationSpeed);
+                    float fromToDelta = EssentialFunctions.RotateTowardsTargetSmoothDamp(stateMachine.transform, stateMachine.taskDestination, ref angularVelocity, stateMachine.rotationSpeed);
 
                     // Stop rotation if angle between target and forward vector is lower than margin of error
                     if (fromToDelta <= marginOfErrorAmount)

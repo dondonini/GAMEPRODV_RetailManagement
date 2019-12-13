@@ -5,7 +5,9 @@ using UnityEngine;
 public class CustomerSpawner : MonoBehaviour
 {
     //[SerializeField] float spawnRate = 5.0f;
-    //[SerializeField] GameObject customer = null;
+    public GameObject customer = null;
+
+    GameManager gameManager = null;
 
     //float timer = 0.0f;
 
@@ -24,10 +26,17 @@ public class CustomerSpawner : MonoBehaviour
     //    }
     //}
 
+    private void Start()
+    {
+        gameManager = GameManager.GetInstance();
+    }
+
     public void SpawnCustomer(GameObject customer)
     {
         GameObject newCustomer = Instantiate(customer) as GameObject;
 
         newCustomer.transform.position = transform.position;
+
+        gameManager.AddCustomer(newCustomer.transform);
     }
 }

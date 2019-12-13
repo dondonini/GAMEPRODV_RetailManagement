@@ -2,6 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum GameState
+{
+    Starting,
+    Paused,
+    Running,
+    Won,
+    Lost
+}
+
 public class GameManager : MonoBehaviour
 {
     //************************************************************************/
@@ -34,24 +43,47 @@ public class GameManager : MonoBehaviour
     //************************************************************************/
     // Variables
 
-    public float despawnHeight = -10.0f;
+    [Header("Game Score")]
 
     [SerializeField] int profit = 0;
     [SerializeField] int lostCustomers = 0;
 
+    [Header("Game Settings")]
+    public float despawnHeight = -10.0f;
+
     [SerializeField] float levelDuration = 120.0f;
 
+    [SerializeField] float maxLostCustomers = 3;
+
+    [SerializeField] float readyDuration = 5.0f;
     [SerializeField] int secondsCountDown = 3;
+
+    [Header("Customer Settings")]
     [SerializeField] AnimationCurve customerFrequency = new AnimationCurve(
         new Keyframe(0.0f, 10.0f, 0.0f, 0.0f),
         new Keyframe(120.0f, 5.0f, 0.0f, 0.0f));
-    [SerializeField] float truckSpawnFrequency = 30.0f;
-
-    [SerializeField] bool isDeliverInSequence = true;
-    [SerializeField] TruckDeliveryPack[] truckDeliveryOrder = new TruckDeliveryPack[] { };
-
     [SerializeField] CustomerTypePack[] customersToSpawn = null;
 
+    [Header("Truck Settings")]
+    [SerializeField] float truckSpawnFrequency = 30.0f;
+
+    [Tooltip("Determind if the delivery order list will be sent in order or not.")]
+    [SerializeField] bool isDeliverInSequence = true;
+    [SerializeField] TruckDeliveryPack[] truckDeliveryOrder = System.Array.Empty<TruckDeliveryPack>();
+
+    [Header("Win State Settings")]
+    [SerializeField] string[] randomWinMessages = new string[] { "Ayyy you did it!" };
+
+    [Header("Lost State Settings")]
+    [SerializeField] string[] randomLostMessages = new string[] { "Really?" };
+
+    [Header("Game Over Settings")]
+    [SerializeField] float endSlowDownDuration = 5.0f;
+
+    [Header("References")]
+    [SerializeField] string latestLostReason = "You're actually bad";
+
+    [SerializeField] HUD HUDScript = null;
     [SerializeField] List<Transform> players = new List<Transform>();
     [SerializeField] List<Transform> customersInLevel = new List<Transform>();
 
@@ -60,11 +92,13 @@ public class GameManager : MonoBehaviour
 
     MapManager mapManager = null;
 
-    bool isGameActive = false;
+    GameState currrentGameState = GameState.Starting;
 
     int currentDeliveryPackIndex = 0;
 
     TruckDriver currentTruckDriver = null;
+
+    GameState previousGameState = GameState.Starting;
 
     // Timers
     float startCountDownTimer = 0.0f;
@@ -116,6 +150,11 @@ public class GameManager : MonoBehaviour
         mapManager = MapManager.GetInstance();
 
         currentDeliveryPackIndex = 0;
+
+        gameDuration = levelDuration;
+
+        HUDScript.UpdateTimer(gameDuration);
+        HUDScript.UpdateCash(profit);
     }
 
     // Update is called once per frame
@@ -124,16 +163,42 @@ public class GameManager : MonoBehaviour
         // Wait until MapManager is done loading
         if (!mapManager.isDoneLoading) return;
 
+        if (currrentGameState == GameState.Paused) return;
+
         // Count down
-        if (isGameActive == false)
-            if (startCountDownTimer >= secondsCountDown)
+        if (currrentGameState == GameState.Starting && gameDuration >= 0.0f)
+            if (startCountDownTimer >= (secondsCountDown + readyDuration))
             {
-                isGameActive = true;
+                currrentGameState = GameState.Running;
+                Time.timeScale = 1.0f;
+                HUDScript.UpdateCountDown("");
             }
             else
             {
-                startCountDownTimer += Time.deltaTime;
+                startCountDownTimer += Time.unscaledDeltaTime;
+
+                float countDownReversed = (secondsCountDown - startCountDownTimer) + readyDuration;
+
+                if (startCountDownTimer < readyDuration)
+                {
+                    HUDScript.UpdateCountDown("Ready?");
+                }
+                else
+                {
+                    int countDownText = Mathf.CeilToInt(countDownReversed);
+                    if (countDownText < 0) countDownText = 0;
+
+                    HUDScript.UpdateCountDown(countDownText.ToString());
+                }
+
+                Time.timeScale = 0.0f;
             }
+
+        // Game over!
+        else if ((currrentGameState != GameState.Running && gameDuration <= 0.0f) || currrentGameState == GameState.Lost)
+        {
+            
+        }
 
         // Game on!
         else
@@ -141,9 +206,11 @@ public class GameManager : MonoBehaviour
             #region Timer Management
 
             customerSpawnTimer += Time.deltaTime;
-            gameDuration += Time.deltaTime;
+            gameDuration -= Time.deltaTime;
 
             #endregion
+
+            #region Spawner Management
 
             if (!currentTruckDriver || !currentTruckDriver.isSpawning)
             {
@@ -161,17 +228,31 @@ public class GameManager : MonoBehaviour
             if (customerSpawnTimer >= currentCustomerSpawnFrequency)
             {
                 SpawnCustomer();
-                Debug.Log("Spawning customer! Current frequency:" + currentCustomerSpawnFrequency);
+                //Debug.Log("Spawning customer! Current frequency:" + currentCustomerSpawnFrequency);
                 customerSpawnTimer = 0.0f;
             }
 
+            #endregion
 
+            if (lostCustomers >= maxLostCustomers)
+            {
+                LostState(latestLostReason);
+                return;
+            }
+
+            if (gameDuration <= 0.0f)
+            {
+                WinState();
+                return;
+            }
+
+            HUDScript.UpdateTimer(gameDuration);
         }
     }
 
     void SpawnCustomer()
     {
-        GameObject selected = null;
+        GameObject selected;
 
         // Select a random customer is list by chance
         if (customersToSpawn.Length == 1)
@@ -303,6 +384,8 @@ public class GameManager : MonoBehaviour
     public void AddScore(int amount)
     {
         profit += amount;
+
+        HUDScript.UpdateCash(profit);
     }
 
     public int GetScore()
@@ -313,15 +396,109 @@ public class GameManager : MonoBehaviour
     public void StealScore(int amount)
     {
         profit -= amount;
+
+        HUDScript.UpdateCash(profit);
     }
 
     public void LostCustomer()
     {
         lostCustomers++;
+
+        HUDScript.UpdateUpsetCustomers(lostCustomers);
     }
 
     public int GetLostCustomerAmount()
     {
         return lostCustomers;
+    }
+
+    public void PauseGame()
+    {
+        if (currrentGameState != GameState.Running && currrentGameState != GameState.Starting) return;
+        // Save previous game state
+        previousGameState = currrentGameState;
+
+        // Set up pause state
+        StartCoroutine(SetSlowDown(0.5f));
+        HUDScript.GetPauseMenu().SetActive(true);
+
+        // Change state
+        currrentGameState = GameState.Paused;
+    }
+
+    public void ResumeGame()
+    {
+        // Set up resume game
+        Time.timeScale = 1.0f;
+        HUDScript.GetPauseMenu().SetActive(false);
+
+        // Restore previous game state
+        currrentGameState = previousGameState;
+    }
+
+    public GameState GetGameState()
+    {
+        return currrentGameState;
+    }
+
+    public void ForceLoseReasonMessage(string lostReason)
+    {
+        latestLostReason = lostReason;
+    }
+
+    public void LostState(string lostReason)
+    {
+        currrentGameState = GameState.Lost;
+
+        HUDScript.SetGameOver(lostReason);
+        StartCoroutine(SetSlowDown(endSlowDownDuration));
+    }
+
+    public void LostState()
+    {
+        LostState(EssentialFunctions.GetRandomFromArray(randomLostMessages));
+    }
+
+    public bool IsGameOver()
+    {
+        return currrentGameState == GameState.Lost || currrentGameState == GameState.Won;
+    }
+
+    IEnumerator SetSlowDown(float slowDownDuration)
+    {
+        for (float t = slowDownDuration; t >= 0.0f; t -= Time.unscaledDeltaTime)
+        {
+            float p = t / slowDownDuration;
+
+            Time.timeScale = p;
+
+            yield return new WaitForEndOfFrame();
+        }
+
+        Time.timeScale = 0.0f;
+
+        yield return null;
+    }
+
+    public void WinState(string winReason)
+    {
+        currrentGameState = GameState.Won;
+        gameDuration = 0.0f;
+
+        HUDScript.SetGameOver(winReason);
+
+        PlayerData.currentInfo.profit = profit;
+
+        StartCoroutine(SetSlowDown(endSlowDownDuration));
+    }
+
+    public void WinState()
+    {
+        WinState(EssentialFunctions.GetRandomFromArray(randomWinMessages));
+    }
+
+    public void ToScoreBoard()
+    {
+
     }
 }

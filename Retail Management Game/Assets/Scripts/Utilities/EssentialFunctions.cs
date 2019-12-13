@@ -211,4 +211,40 @@ public static class EssentialFunctions
 
         return animatorClips[0].clip.length * animationState.normalizedTime;
     }
+
+    public static float RotateTowardsTargetSmoothDamp(Transform transformToTurn, Transform target, ref Quaternion currentVelocity, float smoothTime)
+    {
+        return RotateTowardsTargetSmoothDamp(transformToTurn, target.position, ref currentVelocity, smoothTime);
+    }
+
+    /// <summary>
+    /// Rotates subject towards the target using SmoothDamp
+    /// </summary>
+    /// <param name="transformToTurn">Subject to turn.</param>
+    /// <param name="target">Target to turn subject towards.</param>
+    /// <param name="currentVelocity">The current velocity, this value is modified by the function every time you call it.</param>
+    /// <param name="smoothTime">Approximately the time it will take to reach the target. A smaller value will reach the target faster.</param>
+    /// <returns>The delta angle between the direction the subject is facing to target position.</returns>
+    public static float RotateTowardsTargetSmoothDamp(Transform transformToTurn, Vector3 target, ref Quaternion currentVelocity, float smoothTime)
+    {
+        // Calculate direction to target
+        Vector3 targetRot = target - transformToTurn.position;
+        targetRot.y = 0.0f;
+        targetRot.Normalize();
+
+        // SmoothDamp towards to target rotation
+        transformToTurn.rotation =
+            QuaternionUtil.SmoothDamp(
+                transformToTurn.rotation,
+                Quaternion.LookRotation(targetRot),
+                ref currentVelocity,
+                smoothTime
+            );
+
+        // Debug visuals
+        Debug.DrawRay(transformToTurn.position, targetRot * 5.0f, Color.green);
+        Debug.DrawRay(transformToTurn.position, transformToTurn.forward * 5.0f, Color.red);
+
+        return Vector3.Angle(transformToTurn.forward, targetRot);
+    }
 }

@@ -21,7 +21,9 @@ public class PurchaseState : NormalCustomer_SM
     CashRegister register;
     float waitTime = 0.0f;
 
-    int previousQueueRank = 0;
+    bool isDonePurchasing = false;
+
+    float patienceTimer = 0.0f;
 
     Vector3 targetRot;
 
@@ -38,12 +40,20 @@ public class PurchaseState : NormalCustomer_SM
         stateMachine.taskDestinationPosition = Vector3.zero;
         register = null;
 
+        isDonePurchasing = false;
+
+        patienceTimer = stateMachine.queuingPatience;
+
         waitTime = stateMachine.purchaseDuration;
+
+        stateMachine.patienceAnimator.SetBool("Show", false);
+        stateMachine.patienceBillboard.gameObject.SetActive(false);
     }
 
     public void ExitState()
     {
-
+        stateMachine.patienceAnimator.SetBool("Show", false);
+        stateMachine.patienceBillboard.gameObject.SetActive(false);
     }
 
     #region Transitions
@@ -60,6 +70,12 @@ public class PurchaseState : NormalCustomer_SM
 
     public void ToLeaveStoreState()
     {
+        register.QueueChanged.RemoveListener(QueueChanged);
+        register.CustomerCashedOut.RemoveListener(CashingOut);
+
+        // Leave the cash register queue
+        register.RemoveFromQueue(stateMachine.gameObject);
+
         stateMachine.currentState = stateMachine.leavingState;
     }
 
@@ -89,6 +105,8 @@ public class PurchaseState : NormalCustomer_SM
     {
         switch (currentAction)
         {
+
+                // Setup goal for AI
             case PurchaseActions.None:
                 {
                     bool result = SetupDestination();
@@ -100,18 +118,27 @@ public class PurchaseState : NormalCustomer_SM
                     }
                     break;
                 }
+
+                // Walking to destination
             case PurchaseActions.Moving:
                 {
+                    // Remove patience indicator
+                    stateMachine.patienceBillboard.gameObject.SetActive(true);
+                    stateMachine.patienceAnimator.SetBool("Show", false);
+                    stateMachine.patienceBillboard.gameObject.SetActive(false);
+
+                    // Change action state when close to the destination
                     if (stateMachine.agent.remainingDistance < stateMachine.maxPickupDistance)
                     {
                         currentAction = PurchaseActions.Turning;
                     }
                     break;
                 }
+
+                // Turn towards destination
             case PurchaseActions.Turning:
                 {
                     // Calculate direction to target
-
                     Vector3 target;
                     int rank = register.GetCustomerQueueRank(stateMachine.gameObject);
 
@@ -124,76 +151,60 @@ public class PurchaseState : NormalCustomer_SM
                         target = stateMachine.taskDestination.position;
                     }
 
-                    targetRot = target - stateMachine.transform.position;
-                    targetRot.y = 0.0f;
-                    targetRot.Normalize();
-
-                    // SmoothDamp towards to target rotation
-                    stateMachine.transform.rotation =
-                        QuaternionUtil.SmoothDamp(
-                            stateMachine.transform.rotation,
-                            Quaternion.LookRotation(targetRot),
-                            ref angularVelocity,
-                            stateMachine.rotationSpeed
-                        );
-
-                    // Debug visuals
-                    Debug.DrawRay(stateMachine.transform.position, targetRot * 2.0f, Color.green);
-                    Debug.DrawRay(stateMachine.transform.position, stateMachine.transform.forward * 2.0f, Color.red);
+                    float fromToDelta = EssentialFunctions.RotateTowardsTargetSmoothDamp(stateMachine.transform, target, ref angularVelocity, stateMachine.rotationSpeed);
 
                     // Stop rotation if angle between target and forward vector is lower than margin of error
-                    if (Vector3.Angle(stateMachine.transform.forward, targetRot) <= marginOfErrorAmount)
-                    {
-                        if (rank != 0)
-                        {
-                            previousQueueRank = rank;
-                            currentAction = PurchaseActions.Queuing;
-                        }
-                        else
-                        {
-                            currentAction = PurchaseActions.Purchasing;
-                        }
-                    }
+                    if (fromToDelta <= marginOfErrorAmount)
+                        currentAction = PurchaseActions.Queuing;
+
                     break;
                 }
+
+                // Wait in line (and get mad if players take too long)
             case PurchaseActions.Queuing:
                 {
-                    //int rank = register.GetCustomerQueueRank(stateMachine.gameObject);
-
-                    //if (rank != previousQueueRank)
-                    //{
-                    //    stateMachine.taskDestinationPosition = register.GetCustomerQueuePostion(stateMachine.gameObject);
-
-                    //    stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
-
-                    //    currentAction = PurchaseActions.Moving;
-                    //}
-
-                    //previousQueueRank = rank;
-                    break;
-                }
-            case PurchaseActions.Purchasing:
-                {
-                    // Buy the product in hand
-                    if (stateMachine.IsHoldingItem())
-                        PurchaseEquippedProduct();
-                    
-                    // Wait a little before leaving the line
-                    if (waitTime > 0.0f)
-                        waitTime -= Time.deltaTime;
-                    else
+                    if (isDonePurchasing)
                     {
-                        register.QueueChanged.RemoveListener(QueueChanged);
+                        currentAction = PurchaseActions.Purchasing;
+                    }
+                    else if (patienceTimer <= 0.0f)
+                    {
+                        // Added this just so it won't give an error in the menu demo
+                        if (stateMachine.gameManager)
+                        {
+                            stateMachine.gameManager.ForceLoseReasonMessage("CASH OUT CUSTOMERS, DUMMY");
+                            stateMachine.gameManager.LostCustomer();
+                        }
 
-                        // Leave the cash register queue
-                        register.RemoveFromQueue(stateMachine.gameObject);
-
-                        
-
-                        // Leave the store
                         ToLeaveStoreState();
                     }
 
+                    stateMachine.patienceBillboard.gameObject.SetActive(true);
+                    stateMachine.patienceAnimator.SetBool("Show", true);
+                    stateMachine.patienceText.color = Color.Lerp(Color.white, Color.red, 1.0f - (patienceTimer / stateMachine.queuingPatience));
+
+                    patienceTimer -= Time.deltaTime;
+                    break;
+                }
+
+                // Buy the product
+            case PurchaseActions.Purchasing:
+                {
+                    if (isDonePurchasing)
+                    {
+                        // Buy the product in hand
+                        if (stateMachine.IsHoldingItem())
+                            PurchaseEquippedProduct();
+
+                        // Wait a little before leaving the line
+                        if (waitTime > 0.0f)
+                            waitTime -= Time.deltaTime;
+                        else
+                        {
+                            // Leave the store
+                            ToLeaveStoreState();
+                        }
+                    }
                     break;
                 }
         }
@@ -216,10 +227,10 @@ public class PurchaseState : NormalCustomer_SM
 
             // Attach queue change event
             register.QueueChanged.AddListener(QueueChanged);
+            register.CustomerCashedOut.AddListener(CashingOut);
 
             return true;
         }
-
         return false;
     }
 
@@ -244,6 +255,15 @@ public class PurchaseState : NormalCustomer_SM
         stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
 
         currentAction = PurchaseActions.Moving;
+    }
 
+    void CashingOut()
+    {
+        if (Vector3.Distance(stateMachine.transform.position, register.transform.position)
+            < 2.0f && register.GetCustomerQueueRank(stateMachine.gameObject) == 0)
+            currentAction = PurchaseActions.Purchasing;
+
+        if (currentAction == PurchaseActions.Purchasing)
+            isDonePurchasing = true;
     }
 }

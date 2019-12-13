@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -23,11 +24,14 @@ public class CashRegister : MonoBehaviour
     [Header("References")]
 
     [SerializeField] Transform queueStartPosition = null;
+    [SerializeField] Transform standingPos = null;
+    [SerializeField] GameObject priceToaster = null;
 
     //*************************************************************************
     [Header("Events")]
 
     public UnityEvent QueueChanged;
+    public UnityEvent CustomerCashedOut;
 
     //*************************************************************************
     // Managers
@@ -81,8 +85,10 @@ public class CashRegister : MonoBehaviour
             {
                 gameManager.AddScore(mapManager.GetStockTypePrice(stockItem.GetStockType()));
 
+                PushPriceToaster(mapManager.GetStockTypePrice(stockItem.GetStockType()));
+
                 // Delete sold product
-                product.parent = null;
+                product.SetParent(null);
                 Destroy(product.gameObject);
             }
             else
@@ -109,7 +115,7 @@ public class CashRegister : MonoBehaviour
         // Check if customer is already in the queue.
         if (queue.Contains(customer))
         {
-            Debug.Log("Customer is already in queue! If you're trying to get the customer's position in line, use GetCustomerQueuePosition(GameObject customer) instead.", customer);
+            Debug.LogWarning("Customer is already in queue! If you're trying to get the customer's position in line, use GetCustomerQueuePosition(GameObject customer) instead.", customer);
             return GetCustomerQueuePostion(customer);
         }
 
@@ -135,9 +141,6 @@ public class CashRegister : MonoBehaviour
             if (!isCloser)
                 queue.Add(customer);
         }
-
-        
-        
 
         // Invoke attached customers in queue that line has changed
         QueueChanged.Invoke();
@@ -178,6 +181,11 @@ public class CashRegister : MonoBehaviour
         }
 
         return -1;
+    }
+
+    public Transform GetStandingPosition()
+    {
+        return standingPos;
     }
 
     public bool IsFull()
@@ -237,7 +245,7 @@ public class CashRegister : MonoBehaviour
             // transformed vectors right and left:
             Vector3 queueRight = new Vector3(queueDirection.z, queueDirection.y, -queueDirection.x);
 
-            if (!Physics.Raycast(turnOrigin, queueRight, out hit, remainingDistance, LayerMask.GetMask("Default")))
+            if (!Physics.Raycast(turnOrigin, queueRight, out _, remainingDistance, LayerMask.GetMask("Default")))
             {
                 turnDirection = queueTurnDirections.Right;
             }
@@ -261,5 +269,26 @@ public class CashRegister : MonoBehaviour
 
         // Calculate distance from queue start position
         return queuePosition;
+    }
+
+    public void CashCustomerOut()
+    {
+        CustomerCashedOut.Invoke();
+    }
+
+    void PushPriceToaster(int price)
+    {
+        GameObject newToaster = Instantiate(priceToaster) as GameObject;
+
+        newToaster.transform.position = transform.position;
+
+        UIToaster uiToaster = newToaster.GetComponent<UIToaster>();
+        uiToaster.SetupToaster(
+            price.ToString("C0", CultureInfo.CurrentCulture),
+            Color.green,
+            1.0f,
+            0.8f,
+            EasingFunction.Ease.OutExpo,
+            4.0f);
     }
 }

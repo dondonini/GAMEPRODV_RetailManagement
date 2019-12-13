@@ -5,6 +5,13 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
+public enum PlayerMode
+{
+    Walking,
+    Cashier,
+    Receiving,
+}
+
 public class PlayerController : MonoBehaviour
 {
 
@@ -17,9 +24,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float pickupAngle = 90.0f;
     [SerializeField] float maxPickupDistance = 2.0f;
     //[SerializeField] float maxShelfDistance = 0.5f;
-    //[SerializeField] float dashPower = 100.0f;
-    //[SerializeField] float dashDuration = 5.0f;
-    //[SerializeField] float dashDeacceleration = 5.0f;
+    [SerializeField] float dashMultiplier = 100.0f;
+    [SerializeField] float dashDuration = 5.0f;
     [Tooltip("The amount of force when throwing your equipped item.")]
     [SerializeField] float throwPower = 100.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
@@ -36,30 +42,32 @@ public class PlayerController : MonoBehaviour
     [SerializeField] CharacterController characterController = null;
     [SerializeField] Transform equippedPosition = null;
     [SerializeField] BoxCollider pickupArea = null;
-    [SerializeField] Rigidbody rigidBody = null;
     GameObject equippedItem = null;
 
     /************************************************/
     // Runtime Variables
+
+    PlayerMode currentPlayerMode = PlayerMode.Walking;
 
     Vector3 playerDirection = Vector3.zero;
     Vector3 playerVelocity = Vector3.zero;
     Vector3 previousPlayerPosition = Vector3.zero;
     bool throwItem = false;
     bool justPickedUp = false;
+    string lastPressedKeyControl = "";
 
     // Timers
     float dashTapTimer = 0.0f;
     int dashTapCount = 0;
+    float dashTimer = 0.0f;
     float throwHoldTimer = 0.0f;
 
     // Managers
     MapManager mapManager;
-    GameplayControls gameplayControls;
+    GameManager gameManager;
 
-    // Controls
-    InputAction c_movement;
-    InputAction c_pickup;
+    // Current Interactive
+    CashRegister interact_Register = null;
 
     private void OnDrawGizmos()
     {
@@ -84,111 +92,155 @@ public class PlayerController : MonoBehaviour
         pickupArea.transform.localPosition = new Vector3(0.0f, 0.0f, boxSizeDepth * 0.5f);
     }
 
-    private void Awake()
-    {
-        gameplayControls = new GameplayControls();
-
-        // Attach all controls
-        c_movement = gameplayControls.Default.Movement;
-        c_movement.performed += OnMovementChanged;
-        c_movement.canceled += OnMovementChanged;
-
-        c_pickup = gameplayControls.Default.Pickup;
-        c_pickup.started += OnPickupChanged;
-        c_pickup.canceled += OnPickupChanged;
-    }
-
-    private void OnEnable()
-    {
-        c_movement.Enable();
-        c_pickup.Enable();
-    }
-    private void OnDisable()
-    {
-        c_movement.Disable();
-        c_pickup.Disable();
-    }
-
     /************************************************/
     #region OnChanged Events
-    private void OnMovementChanged(InputAction.CallbackContext context)
+    
+    public void OnMovement(InputAction.CallbackContext context)
     {
-        Vector2 movementVector = c_movement.ReadValue<Vector2>();
+        Vector2 movementVector = context.ReadValue<Vector2>();
 
-        // Parse movement data
-        float directionX = movementVector.x;
-        float directionY = movementVector.y;
+        playerDirection = new Vector3(movementVector.x, 0.0f, movementVector.y);
 
         // Check if input device is the keyboard
-        if (context.control.device.name == "Keyboard")
+        if (context.control.device.name == "Keyboard" && context.started)
         {
+            ButtonControl keyControl = context.control as ButtonControl;
+
             // Detect if change is not cancelled
             if (movementVector.magnitude > 0.0f)
             {
-                if (dashTapTimer > 0.0f)
+                if (keyControl.name != lastPressedKeyControl)
                 {
-                    dashTapCount++;
+                    lastPressedKeyControl = keyControl.name;
                 }
-
-                dashTapTimer = doubleTapThreshold / 1000.0f;
+                else
+                {
+                    if (dashTapTimer > 0.0f)
+                    {
+                        dashTapCount++;
+                    }
+                    dashTapTimer = doubleTapThreshold / 1000.0f;
+                }
             }
         }
 
         if (dashTapCount == 1)
         {
             // TODO: Implement dash
+            Dash();
         }
-
-        playerDirection = new Vector3(directionX, 0.0f, directionY);
     }
 
-    private void OnPickupChanged(InputAction.CallbackContext context)
+    public void OnDash(InputAction.CallbackContext context)
     {
-        ButtonControl pickupButton = c_pickup.activeControl as ButtonControl;
+        if (context.performed)
+            if (dashTimer <= 0.0f)
+                Dash();
+    }
 
-        // Check for button down/up state
-        if (pickupButton.isPressed)
-        {
-            // Check if player is already holding an item
-            if (equippedItem)
-            {
-                // Start throw timer
-                throwHoldTimer = holdThreshold / 1000.0f;
-            }
-            else
-            {
-                Interact();
-            }
-        }
-        else
-        {
-            // Check if player just picked up a new item
-            if (!justPickedUp)
-            {
-                throwHoldTimer = 0.0f;
+    public void OnPickup(InputAction.CallbackContext context)
+    {
+        if (gameManager && gameManager.IsGameOver())
+            Debug.Log("Heh");
 
-                // To throw it or not?? Hmmm?
-                if (throwItem)
+
+        switch (currentPlayerMode)
+        {
+            case PlayerMode.Walking:
                 {
-                    Debug.Log("LMAO, MANZ ACTUALLY DID IT! XDDD");
-                    // THROW IT!
-                    ThrowItem();
+                    // Check for button down/up state
+                    if (context.started)
+                    {
+                        // Check if player is already holding an item
+                        if (equippedItem)
+                        {
+                            // Start throw timer
+                            throwHoldTimer = holdThreshold / 1000.0f;
+                        }
+                        else
+                        {
+                            PickupObject();
+                        }
+                    }
+                    else if (context.canceled)
+                    {
+                        // Check if player just picked up a new item
+                        if (!justPickedUp)
+                        {
+                            throwHoldTimer = 0.0f;
+
+                            // To throw it or not?? Hmmm?
+                            if (throwItem)
+                            {
+                                Debug.Log("LMAO, MANZ ACTUALLY DID IT! XDDD");
+
+                                // THROW IT!
+                                ThrowItem();
+                            }
+                            else
+                            {
+                                PickupObject();
+
+                                // You're lazy
+                                UnequipItem();
+                            }
+                        }
+                        else
+                        {
+                            justPickedUp = false;
+                        }
+                    }
+
+                    throwItem = false;
+
+                    break;
                 }
-                else
+            case PlayerMode.Cashier:
+                {
+                    if (!context.performed) return;
+
+                    interact_Register.CashCustomerOut();
+
+                    break;
+                }
+        }
+        
+    }
+
+    public void OnInteract(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+
+        switch (currentPlayerMode)
+        {
+            case PlayerMode.Walking:
                 {
                     Interact();
 
-                    // You're lazy
-                    UnequipItem();
+                    break;
                 }
-            }
-            else
-            {
-                justPickedUp = false;
-            }
-        }
+            case PlayerMode.Cashier:
+                {
+                    interact_Register = null;
+                    currentPlayerMode = PlayerMode.Walking;
 
-        throwItem = false;
+                    break;
+                }
+        }
+    }
+
+    public void OnStart(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+
+        if (gameManager.GetGameState() == GameState.Paused)
+        {
+            gameManager.ResumeGame();
+        }
+        else
+        {
+            gameManager.PauseGame();
+        }
     }
 
     // Allows player to push rigidbody objects
@@ -197,16 +249,10 @@ public class PlayerController : MonoBehaviour
         Rigidbody body = hit.collider.attachedRigidbody;
 
         // No rigidbody
-        if (body == null || body.isKinematic)
-        {
-            return;
-        }
+        if (body == null || body.isKinematic) return;
 
         // We dont want to push objects below us
-        //if (hit.moveDirection.y < -0.2f)
-        //{
-        //    return;
-        //}
+        if (hit.moveDirection.y < -0.2f) return;
 
         /***
          * Calculate push direction from move direction,
@@ -229,6 +275,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         mapManager = MapManager.GetInstance();
+        gameManager = GameManager.GetInstance();
 
         previousPlayerPosition = transform.position;
     }
@@ -236,7 +283,10 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        UpdatePlayer();
+
         #region Timer Management
+
         // Decrease dash timer for multi tap detection
         if (dashTapTimer > 0.0f)
         {
@@ -246,6 +296,16 @@ public class PlayerController : MonoBehaviour
         {
             dashTapTimer = 0.0f;
             dashTapCount = 0;
+            lastPressedKeyControl = "";
+        }
+
+        if (dashTimer > 0.0f)
+        {
+            dashTimer -= Time.deltaTime;
+        }
+        else if (dashTimer < 0.0f)
+        {
+            dashTimer = 0.0f;
         }
 
         // Decrease throw timer for hold detection
@@ -270,13 +330,12 @@ public class PlayerController : MonoBehaviour
 
         playerVelocity = (transform.position - previousPlayerPosition) * Time.deltaTime;
 
-        //closestInteractible = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance);
         previousPlayerPosition = transform.position;
     }
 
     private void FixedUpdate()
     {
-        UpdatePlayer();
+
     }
 
     /// <summary>
@@ -284,26 +343,52 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void UpdatePlayer()
     {
+        // Only walk when player is in walking mode
+        if (currentPlayerMode != PlayerMode.Walking) return;
+
         // Calculate relative camera direction
         Vector3 relativeDirection = currentCamera.transform.TransformVector(playerDirection);
         relativeDirection.Scale(Vector3.forward + Vector3.right);
 
+        Vector3 rotationResult;
+
         // Ease rotation
-        Vector3 rotationResult = Vector3.Lerp(
-            characterController.transform.position + relativeDirection,
-            characterController.transform.position + characterController.transform.forward,
-            rotationSpeed * playerVelocity.normalized.magnitude
-        );
+        if (playerVelocity.magnitude < 0.1f)
+        {
+            rotationResult = characterController.transform.position + relativeDirection;
+        }
+        else
+        {
+            rotationResult = Vector3.Lerp(
+                characterController.transform.position + relativeDirection,
+                characterController.transform.position + characterController.transform.forward,
+                rotationSpeed * playerVelocity.normalized.magnitude
+            );
+        }
+
 
         // Rotate player
         characterController.transform.LookAt(rotationResult);
+        //characterController.transform.rotation = Quaternion.LookRotation(relativeDirection);
 
         // Get player forward vector
         Vector3 forward = transform.TransformDirection(Vector3.forward);
 
         // Only move the player if you're not throwing an item
         if (!throwItem)
-            characterController.SimpleMove(forward * (playerDirection.magnitude * movmentSpeed * Time.deltaTime));
+            characterController.SimpleMove(forward * 
+                (
+                    playerDirection.magnitude * movmentSpeed * Time.fixedDeltaTime *
+                    (1 + (dashMultiplier
+                          * (dashTimer / dashDuration)
+                          * Time.fixedDeltaTime))
+                )
+            );
+    }
+
+    private void Dash()
+    {
+        dashTimer = dashDuration;
     }
 
     /************************************************/
@@ -311,13 +396,52 @@ public class PlayerController : MonoBehaviour
 
     private void Interact()
     {
-        string[] tagsToScan = { "Product", "StockCrate", "Shelf" };
-        GameObject[] excludedGameObjects = { gameObject, equippedItem };
+        string[] tagsToScan = { "Register" };
+        GameObject[] excludedGameObjects = { gameObject };
 
         GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
 
         if (closestInteractable)
         {
+            switch (closestInteractable.tag)
+            {
+                case "Register":
+                    {
+                        interact_Register = closestInteractable.GetComponent<CashRegister>();
+
+                        currentPlayerMode = PlayerMode.Cashier;
+
+                        transform.position = interact_Register.GetStandingPosition().position;
+                        transform.rotation = interact_Register.GetStandingPosition().rotation;
+
+                        break;
+                    }
+            }
+        }
+
+    }
+
+    private void PickupObject()
+    {
+        string[] tagsToScan = { "Product", "StockCrate", "Shelf" };
+        GameObject[] excludedGameObjects = { gameObject, equippedItem };
+
+        GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
+
+        Vector3 org = EssentialFunctions.GetMaxBounds(gameObject).center;
+
+        if (closestInteractable)
+        {
+            Vector3 tar = EssentialFunctions.GetMaxBounds(closestInteractable).center;
+
+            Vector3 dirToInteractable = org - tar;
+
+            Debug.DrawRay(org, dirToInteractable, Color.red, 1.0f);
+
+            if (Physics.Raycast(org, dirToInteractable, out RaycastHit hit, 5.0f) && hit.transform.root != closestInteractable.transform) return;
+
+            //Debug.Log(hit.transform);
+
             Debug.DrawLine(EssentialFunctions.GetMaxBounds(gameObject).center, EssentialFunctions.GetMaxBounds(closestInteractable).center, Color.red);
 
             switch (closestInteractable.tag)
@@ -361,6 +485,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+
+
     // ////////////////////////////////////////
     // Shelf Interation ///////////////////////
     // ////////////////////////////////////////
@@ -400,7 +526,7 @@ public class PlayerController : MonoBehaviour
                     StockCrate crateComponent = equippedItem.GetComponent<StockCrate>();
                     if (crateComponent)
                     {
-                        result = shelf.AddStock(crateComponent.GetQuantity(), crateComponent.GetStockType());
+                        result = shelf.AddCrate(crateComponent);
                     }
                     break;
                 }
@@ -444,9 +570,11 @@ public class PlayerController : MonoBehaviour
         equippedItem.transform.localPosition = Vector3.zero;
     }
 
-    private void UnequipItem()
+    private GameObject UnequipItem()
     {
-        if (!equippedItem) return;
+        if (!equippedItem) return null;
+
+        GameObject wasHolding = equippedItem;
 
         // Get rigidbody on item and enable physics
         Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
@@ -455,10 +583,7 @@ public class PlayerController : MonoBehaviour
         // De-attach item from player and remove item from equip slot
         equippedItem.transform.SetParent(null);
         equippedItem = null;
+
+        return wasHolding;
     }
-
-    // ////////////////////////////////////////
-    // Stock Crate Interation /////////////////
-    // ////////////////////////////////////////
-
 }

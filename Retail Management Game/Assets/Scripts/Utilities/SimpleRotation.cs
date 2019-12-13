@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class SimpleRotation : MonoBehaviour
 {
+    [SerializeField] bool rotateTimeUnscaled = false;
     [SerializeField] Vector3 rotationDirection = Vector3.zero;
     [SerializeField] float rotationSpeed = 1.0f;
 
@@ -16,7 +17,17 @@ public class SimpleRotation : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        transform.Rotate(rotationDirection * rotationSpeed);
+        Vector3 rotationAmount = rotationDirection * rotationSpeed;
+
+        if (rotateTimeUnscaled)
+        {
+            transform.Rotate(rotationAmount * Time.unscaledDeltaTime);
+        }
+        else
+        {
+            transform.Rotate(rotationAmount * Time.deltaTime);
+        }
+        
     }
 
     public Vector3 RotationDirection

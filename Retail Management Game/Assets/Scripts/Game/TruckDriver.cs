@@ -99,6 +99,7 @@ public class TruckDriver : MonoBehaviour
 
             StockCrate stockCrate = newCrate.GetComponent<StockCrate>();
 
+            stockCrate.SetStockType(crate.stockType);
             int remaining = stockCrate.AddQuantity(crate.stockAmount);
 
             //if (remaining > 0)

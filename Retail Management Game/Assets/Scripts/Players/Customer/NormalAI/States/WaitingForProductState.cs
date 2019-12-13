@@ -9,11 +9,11 @@ public class WaitingForProductState : NormalCustomer_SM
     ShelfContainer shelf;
 
     Vector3 rotationDirection = new Vector3(0.0f, 1.0f, 0.5f);
-    float rotationSpeed = 1.0f;
+    float rotationSpeed = 50.0f;
 
     GameObject spinItem = null;
 
-    const float collisionSensitivity = 2.0f;
+    float patienceTimer = 0.0f;
 
     public WaitingForProductState(NormalCustomer_AI _SM)
     {
@@ -49,6 +49,9 @@ public class WaitingForProductState : NormalCustomer_SM
 
         // Keep reference of model
         spinItem = model;
+
+        // Reset patience timer
+        patienceTimer = stateMachine.stockPatience;
     }
 
     public void ExitState()
@@ -66,7 +69,7 @@ public class WaitingForProductState : NormalCustomer_SM
 
     public void ToLeaveStoreState()
     {
-        
+        stateMachine.currentState = stateMachine.leavingState;
     }
 
     public void ToPurchaseState()
@@ -88,12 +91,21 @@ public class WaitingForProductState : NormalCustomer_SM
 
     public void UpdateState()
     {
+        if (patienceTimer <= 0.0f)
+        {
+            stateMachine.gameManager.ForceLoseReasonMessage("RESTOCK THE SHELVES, DINGUS");
+            stateMachine.gameManager.LostCustomer();
+            ToLeaveStoreState();
+        }
+
+        // Go straight to purchasing when the customer throws the product at them
         if (stateMachine.equippedItem != null)
         {
             ToPurchaseState();
             return;
         }
 
+        // Wait until there's stock on the shelf
         if (!shelf)
         {
             shelf = stateMachine.TaskDestinationAsShelf();
@@ -105,6 +117,14 @@ public class WaitingForProductState : NormalCustomer_SM
                 stateMachine.GetStockFromShelf(shelf);
             }
         }
+
+
+        // Patience Indicator
+        stateMachine.patienceBillboard.gameObject.SetActive(true);
+        stateMachine.patienceAnimator.SetBool("Show", true);
+        stateMachine.patienceText.color = Color.Lerp(Color.white, Color.red, 1.0f - (patienceTimer / stateMachine.stockPatience));
+
+        patienceTimer -= Time.deltaTime;
     }
 
     public void FixedUpdateState()
@@ -112,6 +132,7 @@ public class WaitingForProductState : NormalCustomer_SM
         
     }
 
+    
     void OnCollisionEnter_UE(Collision collision)
     {
         ContactPoint contact = collision.GetContact(0);
@@ -121,19 +142,48 @@ public class WaitingForProductState : NormalCustomer_SM
         //Debug.Log(collision.relativeVelocity.magnitude);
 
         // Add products to the shelf if it hits it hard enough
-        if (collision.relativeVelocity.magnitude < collisionSensitivity) return;
+        if (collision.relativeVelocity.magnitude < stateMachine.collisionSensitivity) return;
 
-        if (other.CompareTag("Product"))
+        switch (other.tag)
         {
-            StockItem stock = other.GetComponent<StockItem>();
-
-            if (stock)
-            {
-                if (stock.GetStockType() == stateMachine.currentWantedProduct)
+            case "Product":
                 {
-                    stateMachine.EquipItem(other.transform);
+                    // Double check if StockItem exists
+                    StockItem stock = other.GetComponent<StockItem>();
+                    if (stock)
+                    {
+                        // Check if stock matches the current wanted product
+                        if (stock.GetStockType() == stateMachine.currentWantedProduct)
+                        {
+                            // Equip cought product
+                            stateMachine.EquipItem(other.transform);
+                        }
+                    }
+                    break;
                 }
-            }
+            case "StockCrate":
+                {
+                    // Double check if StockCrate exists
+                    StockCrate crate = other.GetComponent<StockCrate>();
+                    if (crate)
+                    {
+                        /* Check if stock in crate matches the current wanted 
+                         * product and if there is enough in the crate to take one
+                         */
+                        if (crate.GetStockType() == stateMachine.currentWantedProduct && crate.GetQuantity() >= 1)
+                        {
+                            // Deduct one stock from the crate
+                            crate.SetQuantity(crate.GetQuantity() - 1);
+
+                            // Make new stock and add to customer
+                            GameObject newStock = Object.Instantiate(stateMachine.mapManager.GetStockTypePrefab(stateMachine.currentWantedProduct)) as GameObject;
+
+                            // Equip the new stock
+                            stateMachine.EquipItem(newStock.transform);
+                        }
+                    }
+                    break;
+                }
         }
     }
 }

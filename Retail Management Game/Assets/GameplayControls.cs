@@ -57,6 +57,14 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """"
+                },
+                {
+                    ""name"": ""Start"",
+                    ""type"": ""Button"",
+                    ""id"": ""ef85c4b2-5c05-4b81-99fe-f8eb5da64d11"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """"
                 }
             ],
             ""bindings"": [
@@ -64,17 +72,6 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                     ""name"": """",
                     ""id"": ""4a9380cc-e120-4bc7-a058-8937aed3fc8a"",
                     ""path"": ""<Mouse>/leftButton"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Pickup"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""3c55450e-8598-48db-ab90-65320c29ab3a"",
-                    ""path"": ""<XInputController>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -153,7 +150,7 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                     ""id"": ""c36933fa-1163-409f-910a-a87bcc24cf0b"",
                     ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
-                    ""processors"": """",
+                    ""processors"": ""StickDeadzone"",
                     ""groups"": """",
                     ""action"": ""Movement"",
                     ""isComposite"": false,
@@ -163,17 +160,6 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                     ""name"": """",
                     ""id"": ""1743e970-810f-4e8f-a657-f8e5b47552f9"",
                     ""path"": ""<Mouse>/rightButton"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Interact"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""bd443b1c-4309-4c82-a39a-03c542dc5f2a"",
-                    ""path"": ""<XInputController>/buttonWest"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -205,17 +191,6 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""8addfab6-5357-486a-a740-07e92d528a48"",
-                    ""path"": ""<XInputController>/buttonNorth"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Emote"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""8ac30852-a5da-46cf-8319-ad6a45f258ee"",
                     ""path"": ""<Gamepad>/buttonNorth"",
                     ""interactions"": """",
@@ -227,8 +202,8 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""bfc4e979-423e-4331-a848-e667b9b7713c"",
-                    ""path"": ""<XInputController>/buttonEast"",
+                    ""id"": ""e9e08e6c-b09c-49c6-af30-5da979858214"",
+                    ""path"": ""<Gamepad>/buttonEast"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -238,12 +213,23 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""e9e08e6c-b09c-49c6-af30-5da979858214"",
-                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""id"": ""aa68f8c0-902f-445d-9cf6-dbacf30eb2fa"",
+                    ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Dash"",
+                    ""action"": ""Start"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b61d25c9-b574-416e-834b-807142a3aff8"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Start"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -259,6 +245,7 @@ public class @GameplayControls : IInputActionCollection, IDisposable
         m_Default_Interact = m_Default.FindAction("Interact", throwIfNotFound: true);
         m_Default_Emote = m_Default.FindAction("Emote", throwIfNotFound: true);
         m_Default_Dash = m_Default.FindAction("Dash", throwIfNotFound: true);
+        m_Default_Start = m_Default.FindAction("Start", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -313,6 +300,7 @@ public class @GameplayControls : IInputActionCollection, IDisposable
     private readonly InputAction m_Default_Interact;
     private readonly InputAction m_Default_Emote;
     private readonly InputAction m_Default_Dash;
+    private readonly InputAction m_Default_Start;
     public struct DefaultActions
     {
         private @GameplayControls m_Wrapper;
@@ -322,6 +310,7 @@ public class @GameplayControls : IInputActionCollection, IDisposable
         public InputAction @Interact => m_Wrapper.m_Default_Interact;
         public InputAction @Emote => m_Wrapper.m_Default_Emote;
         public InputAction @Dash => m_Wrapper.m_Default_Dash;
+        public InputAction @Start => m_Wrapper.m_Default_Start;
         public InputActionMap Get() { return m_Wrapper.m_Default; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -346,6 +335,9 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                 @Dash.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
                 @Dash.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
                 @Dash.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnDash;
+                @Start.started -= m_Wrapper.m_DefaultActionsCallbackInterface.OnStart;
+                @Start.performed -= m_Wrapper.m_DefaultActionsCallbackInterface.OnStart;
+                @Start.canceled -= m_Wrapper.m_DefaultActionsCallbackInterface.OnStart;
             }
             m_Wrapper.m_DefaultActionsCallbackInterface = instance;
             if (instance != null)
@@ -365,6 +357,9 @@ public class @GameplayControls : IInputActionCollection, IDisposable
                 @Dash.started += instance.OnDash;
                 @Dash.performed += instance.OnDash;
                 @Dash.canceled += instance.OnDash;
+                @Start.started += instance.OnStart;
+                @Start.performed += instance.OnStart;
+                @Start.canceled += instance.OnStart;
             }
         }
     }
@@ -376,5 +371,6 @@ public class @GameplayControls : IInputActionCollection, IDisposable
         void OnInteract(InputAction.CallbackContext context);
         void OnEmote(InputAction.CallbackContext context);
         void OnDash(InputAction.CallbackContext context);
+        void OnStart(InputAction.CallbackContext context);
     }
 }

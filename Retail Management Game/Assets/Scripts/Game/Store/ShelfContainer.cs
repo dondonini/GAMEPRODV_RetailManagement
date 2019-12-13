@@ -9,6 +9,7 @@ public class ShelfContainer : MonoBehaviour
     [SerializeField] private StockTypes shelfStockType = StockTypes.None;
     [SerializeField] private int stockAmount = 0;
     [SerializeField] private int shelfSize = 10;
+    [SerializeField] private float playerDetectionDistance = 1.0f;
 
     [Header("Pickup Faces")]
 
@@ -27,7 +28,10 @@ public class ShelfContainer : MonoBehaviour
     const float collisionSensitivity = 2.0f;
 
     [Header("References")]
-    [SerializeField] TextMeshProUGUI debugText = null;
+    [SerializeField] TextMeshProUGUI stockNumIndicator = null;
+    [SerializeField] Animator billboardAnimator = null;
+    [SerializeField] ShelfVisual shelfVisual = null;
+    [SerializeField] GameObject stockToaster = null;
     
     Vector3[] pickupPositions = null;
 
@@ -39,30 +43,46 @@ public class ShelfContainer : MonoBehaviour
 
     MapManager mapManager;
 
+    Bounds shelfBounds;
+
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = new Color(0.0f, 1.0f, 0.0f, 0.1f);
+        Gizmos.color = new Color(0.0f, 1.0f, 0.0f, 0.5f);
 
         Bounds boundsOfSelf = EssentialFunctions.GetMaxBounds(gameObject);
 
         if (allowPickup_F)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * 0.5f), new Vector3(boundsOfSelf.size.x, boundsOfSelf.size.y, 0.0f));
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * 0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
         }
 
         if (allowPickup_B)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * -0.5f), new Vector3(boundsOfSelf.size.x, boundsOfSelf.size.y, 0.0f));
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * -0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
         }
 
         if (allowPickup_L)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * -0.5f), new Vector3(0.0f, boundsOfSelf.size.y, boundsOfSelf.size.z));
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * -0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
         }
 
         if (allowPickup_R)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * 0.5f), new Vector3(0.0f, boundsOfSelf.size.y, boundsOfSelf.size.z));
+            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * 0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
+        }
+
+        Gizmos.color = new Color(0.0f, 1.0f, 1.0f, 0.5f);
+        Gizmos.DrawWireCube(boundsOfSelf.center, boundsOfSelf.size + new Vector3(playerDetectionDistance, 0.0f, playerDetectionDistance));
+
+        
+        foreach(ShelfContainer shelf in GetAllAdjacentShelves())
+        {
+            if (shelf == this)
+                Gizmos.color = new Color(0.0f, 0.0f, 1.0f, 1.0f);
+            else
+                Gizmos.color = new Color(0.0f, 0.0f, 1.0f, 0.25f);
+
+            Gizmos.DrawCube(shelf.transform.position + new Vector3(0.0f, 2.0f, 0.0f), new Vector3(0.1f, 0.1f, 0.1f));
         }
     }
 
@@ -74,21 +94,13 @@ public class ShelfContainer : MonoBehaviour
             allowPickup_F = true;
         }
 
+        stockAmount = Mathf.Clamp(stockAmount, 0, shelfSize);
+
         UpdatePickupPositionsArray();
+        UpdateVisuals();
 
         adjacentShelves.Clear();
-
-        Collider[] adjacentObjects = Physics.OverlapBox(transform.position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(1.1f, 1.0f, 1.1f));
-
-        foreach (Collider adjacentObject in adjacentObjects)
-        {
-            if (adjacentObject.CompareTag("Shelf"))
-            {
-                ShelfContainer shelfContainer = adjacentObject.GetComponent<ShelfContainer>();
-                if (shelfContainer != this && shelfContainer.shelfStockType == shelfStockType)
-                    adjacentShelves.Add(adjacentObject.GetComponent<ShelfContainer>());
-            }
-        }
+        adjacentShelves.AddRange(GetAdjacentShelves());
     }
 
     #region Collisions
@@ -131,9 +143,11 @@ public class ShelfContainer : MonoBehaviour
                     if (stockCrate.IsClaimed()) return;
                     else stockCrate.ClaimItem(gameObject);
 
-                    int result = AddStock(stockCrate.GetQuantity(), stockCrate.GetStockType());
+                    int result = AddCrate(stockCrate);
 
-                    if (result == 0)
+                    Debug.Log(result);
+
+                    if (result <= 0)
                         Destroy(other);
 
                     break;
@@ -149,8 +163,7 @@ public class ShelfContainer : MonoBehaviour
 
             if (other == stuckObjects.ContainsKey(other))
             {
-                float timer = 0.0f;
-                stuckObjects.TryGetValue(other, out timer);
+                stuckObjects.TryGetValue(other, out float timer);
 
                 if (timer <= 0.0f)
                 {
@@ -174,17 +187,38 @@ public class ShelfContainer : MonoBehaviour
         // Get MapManager
         mapManager = MapManager.GetInstance();
 
+        adjacentShelves.Clear();
+        adjacentShelves.AddRange(GetAdjacentShelves());
+
+        shelfBounds = EssentialFunctions.GetMaxBounds(gameObject);
+
         previousStockAmount = stockAmount;
 
-        UpdateDebugText();
+        UpdateStockBillboard();
+        UpdateVisuals();
+
+        //Debug.Log(GetAllAdjacentShelves().Length);
     }
 
     private void Update()
     {
+        // Update text when stock changes
         if (stockAmount != previousStockAmount)
         {
-            UpdateDebugText();
+            UpdateStockBillboard();
+            UpdateVisuals();
         }
+
+        // Show billboard when player is near by or when low in stock
+        if (stockAmount <= 2)
+        { 
+            billboardAnimator.SetBool("ShowNum", true);
+        }
+        else
+        {
+            billboardAnimator.SetBool("ShowNum", IsPlayerInDetectionBox());
+        }
+        
 
         previousStockAmount = stockAmount;
     }
@@ -232,11 +266,13 @@ public class ShelfContainer : MonoBehaviour
             // Shelf is almost empty - give remaining amount
             int givingAmount = stockAmount;
             EmptyShelf();
+            PushStockToaster(-givingAmount);
             return givingAmount;
         }
         else
         {
             stockAmount -= amount;
+            PushStockToaster(-amount);
             // Shelf has enough stock requested - give amount
             return amount;
         }
@@ -253,21 +289,19 @@ public class ShelfContainer : MonoBehaviour
 
         // If this ever happens, you're actually dumb
         if (amount <= 0)
-        {
             Debug.LogWarning("Uhhhhh... why are you adding nothing to the shelf? Tf?");
-        }
 
         // Check if shelf has stock already
         if (ShelfStockType == StockTypes.None)
-        {
             // Apply new stock type
             ShelfStockType = stockType;
-        }
 
         // Check if existing shelf stock doesn't match what you're adding
         else if (stockType != ShelfStockType)
         {
             // Stocks do not match! - do nothing
+
+            Debug.Log("StockType doesn't match shelf! " + amount);
             return amount;
         }
 
@@ -293,7 +327,7 @@ public class ShelfContainer : MonoBehaviour
                 return remainingStock;
 
             // All adjacent shelves are full - return the remaining stock
-            if (IsAllAdjacentShelvesFull()) 
+            if (IsAllAdjacentShelvesFull())
                 return remainingStock;
 
             // Add remaining stock to adjacent shelves
@@ -303,33 +337,48 @@ public class ShelfContainer : MonoBehaviour
 
                 // Add all remaining stock to neighbouring shelf
                 if (shelvesWithSpace.Length == 1)
-                    return shelvesWithSpace[0].AddStock(amount, stockType);
+                {
+                    remainingStock = shelvesWithSpace[0].AddStock(remainingStock, stockType);
+
+                    Debug.Log("Current Shelf Remaining: " + remainingStock);
+                }
 
                 // Evenly divide stock to all adjacent shelves including remaining
                 else
                 {
-                    int shelfQuantity = shelvesWithSpace.Length;
-                    int shelfStockDividedQuantity = Mathf.FloorToInt(remainingStock / shelfQuantity);
-                    int shelfStockRemaining = remainingStock % shelfQuantity;
+                    int newRemainingStock = 0;
 
-                    for (int i = 0; i < shelvesWithSpace.Length; i++)
+                    for (int i = 0; i < remainingStock; i++)
                     {
-                        int amountToAdd = shelfStockDividedQuantity;
-
-                        // Add remaining stock to shelves
-                        if (shelfStockRemaining > 0)
-                        {
-                            amountToAdd++;
-                            shelfStockRemaining--;
-                        }
-
-                        return shelvesWithSpace[i].AddStock(amountToAdd, stockType);
+                        newRemainingStock += shelvesWithSpace[i % shelvesWithSpace.Length].AddStock(stockType);
                     }
+
+                    remainingStock = newRemainingStock;
+                    //int shelfQuantity = shelvesWithSpace.Length;
+                    //int shelfStockDividedQuantity = Mathf.FloorToInt(remainingStock / shelfQuantity);
+                    //int shelfStockRemaining = remainingStock % shelfQuantity;
+
+                    //int newRemaining = 0;
+
+                    //for (int i = 0; i < shelvesWithSpace.Length; i++)
+                    //{
+                    //    int amountToAdd = shelfStockDividedQuantity;
+
+                    //    // Add remaining stock to shelves
+                    //    if (i < shelfStockRemaining)
+                    //    {
+                    //        amountToAdd++;
+                    //    }
+
+                    //    newRemaining += shelvesWithSpace[i].AddStock(amountToAdd, stockType);
+                    //}
+
+                    //Debug.Log("Current Shelf Remaining: " + remainingStock + " Total Remaining Stock: " + newRemaining);
                 }
             }
-
         }
 
+        PushStockToaster(amount - remainingStock);
         return remainingStock;
     }
 
@@ -347,6 +396,9 @@ public class ShelfContainer : MonoBehaviour
     {
         int remainingStock = crate.SetQuantity(AddStock(crate.GetQuantity(), crate.GetStockType()));
         if (remainingStock < 0) remainingStock = 0;
+
+        crate.UnclaimItem(gameObject);
+
         return remainingStock;
     }
 
@@ -407,7 +459,7 @@ public class ShelfContainer : MonoBehaviour
 
     public bool IsFull()
     {
-        return stockAmount == shelfSize;
+        return stockAmount >= shelfSize;
     }
 
     bool IsAllAdjacentShelvesFull()
@@ -425,7 +477,7 @@ public class ShelfContainer : MonoBehaviour
 
     ShelfContainer[] GetAdjacentShelvesWithSpace()
     {
-        List<ShelfContainer> shelvesWithSpace = new List<ShelfContainer>();
+        List<ShelfContainer> shelvesWithSpace = new List<ShelfContainer>(GetAllAdjacentShelves());
 
         for (int i = 0; i < adjacentShelves.Count; i++)
         {
@@ -436,10 +488,120 @@ public class ShelfContainer : MonoBehaviour
         return shelvesWithSpace.ToArray();
     }
 
-    void UpdateDebugText()
+    void UpdateStockBillboard()
     {
-        debugText.SetText(stockAmount.ToString());
+        if (stockAmount <= 2)
+        {
+            stockNumIndicator.CrossFadeColor(Color.red, 0.5f, false, false);
+        }
+        else
+        {
+            stockNumIndicator.CrossFadeColor(Color.white, 0.5f, false, false);
+        }
+
+        stockNumIndicator.SetText(stockAmount.ToString());
+    }
+
+    ShelfContainer[] GetAdjacentShelves()
+    {
+        //adjacentShelves.Clear();
+        List<ShelfContainer> foundShelves = new List<ShelfContainer>();
+
+        Collider[] adjacentObjects = Physics.OverlapBox(transform.position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(1.1f, 1.0f, 1.1f));
+
+        foreach (Collider adjacentObject in adjacentObjects)
+        {
+            if (adjacentObject.CompareTag("Shelf"))
+            {
+                ShelfContainer shelfContainer = adjacentObject.GetComponent<ShelfContainer>();
+                if (shelfContainer != this && shelfContainer.shelfStockType == shelfStockType)
+                    foundShelves.Add(adjacentObject.GetComponent<ShelfContainer>());
+            }
+        }
+
+        return foundShelves.ToArray();
     }
 
     #endregion
+
+    bool IsPlayerInDetectionBox()
+    {
+        Collider[] characters = Physics.OverlapBox(
+                shelfBounds.center,
+                shelfBounds.size + new Vector3(playerDetectionDistance, 0.0f, playerDetectionDistance) * 0.5f, 
+                transform.rotation, 
+                LayerMask.GetMask("Character")
+            );
+
+        for (int i = 0; i < characters.Length; i++)
+        {
+            if (characters[i].transform.root.CompareTag("Player"))
+            {
+                //Debug.Log("Player is near!");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    ShelfContainer[] GetAllAdjacentShelves()
+    {
+        List<ShelfContainer> allAdjShelves = new List<ShelfContainer>();
+
+        CollectShelves(this, ref allAdjShelves);
+
+        void CollectShelves(ShelfContainer shelfContainer, ref List<ShelfContainer> collectedShelves)
+        {
+            shelfContainer.adjacentShelves.Clear();
+            shelfContainer.adjacentShelves.AddRange(shelfContainer.GetAdjacentShelves());
+
+            if (shelfContainer.adjacentShelves.Count > 0)
+            {
+                for (int i = 0; i < shelfContainer.adjacentShelves.Count; i++)
+                {
+                    if (collectedShelves.Contains(shelfContainer.adjacentShelves[i])) continue;
+
+                    collectedShelves.Add(shelfContainer.adjacentShelves[i]);
+
+                    CollectShelves(shelfContainer.adjacentShelves[i], ref collectedShelves);
+                }
+            }
+        }
+
+        return allAdjShelves.ToArray();
+    }
+
+    void UpdateVisuals()
+    {
+        if (shelfVisual)
+            shelfVisual.StockAmountPercentage = (float)stockAmount / shelfSize;
+        else
+        {
+            ShelfVisual sv = GetComponentInChildren<ShelfVisual>();
+            if (sv)
+            {
+                shelfVisual = sv;
+                UpdateVisuals();
+            }
+        }
+    }
+
+    void PushStockToaster(int amount)
+    {
+        GameObject newToaster = Instantiate(stockToaster) as GameObject;
+
+        newToaster.transform.position = transform.position;
+
+        Color fontColour = amount > 0 ? Color.green : Color.red;
+
+        UIToaster uiToaster = newToaster.GetComponent<UIToaster>();
+        uiToaster.SetupToaster(
+            amount.ToString(),
+            fontColour,
+            1.0f,
+            0.8f,
+            EasingFunction.Ease.OutExpo,
+            4.0f);
+    }
 }

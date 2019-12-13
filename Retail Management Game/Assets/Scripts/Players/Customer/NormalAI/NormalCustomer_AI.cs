@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using TMPro;
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class NormalCustomer_AI : MonoBehaviour
@@ -14,10 +15,18 @@ public class NormalCustomer_AI : MonoBehaviour
     public float maxPickupDistance = 1.0f;
     [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
     [SerializeField] float pushPower = 2.0f;
+
+    [Header("Waiting Durations")]
     public float pickupDuration = 2.0f;
     public float purchaseDuration = 2.0f;
+    [Tooltip("How long the customer will wait in a queue (standing still).")]
+    public float queuingPatience = 20.0f;
+    public float stockPatience = 20.0f;
+
+    [Header("Other Settings")]
     public float stuckThreshold = 3.0f;
     public float unstuckDuration = 3.0f;
+    public float collisionSensitivity = 2.0f;
 
     //************************************************************************
     [Header("References")]
@@ -26,6 +35,9 @@ public class NormalCustomer_AI : MonoBehaviour
     [SerializeField] BoxCollider pickupArea = null;
     public ColliderToUnityEvents colliderEvents = null;
     public Transform infoHalo = null;
+    public Canvas patienceBillboard = null;
+    public Animator patienceAnimator = null;
+    public TextMeshProUGUI patienceText = null;
 
     //************************************************************************
     // States
@@ -65,6 +77,7 @@ public class NormalCustomer_AI : MonoBehaviour
     // Managers
 
     [HideInInspector] public MapManager mapManager = null;
+    [HideInInspector] public GameManager gameManager = null;
 
     private void OnValidate()
     {
@@ -121,10 +134,10 @@ public class NormalCustomer_AI : MonoBehaviour
         }
 
         // We dont want to push objects below us
-        //if (hit.moveDirection.y < -0.2f)
-        //{
-        //    return;
-        //}
+        if (hit.moveDirection.y < -0.2f)
+        {
+            return;
+        }
 
         /***
          * Calculate push direction from move direction,
@@ -154,6 +167,7 @@ public class NormalCustomer_AI : MonoBehaviour
     {
         // Get MapManager
         mapManager = MapManager.GetInstance();
+        gameManager = GameManager.GetInstance();
 
         // Begin with default state
         currentState = getProductState;
@@ -180,12 +194,7 @@ public class NormalCustomer_AI : MonoBehaviour
             currentState.StartState();
         }
         
-        if (!isActive)
-        {
-            return;
-        }
-
-        IsStuck();
+        if (!isActive) return;
 
         // Update current state
         currentState.UpdateState();
@@ -222,32 +231,7 @@ public class NormalCustomer_AI : MonoBehaviour
         currentStateAction = string.Format("{0} / {1}", currentState, action);
         subStateMachineState = action;
     }
-
-    public void IsStuck()
-    {
-        if (!isGettingUnstuck)
-        {
-            if (!(CalculateTransformVelocity().magnitude < 1.0f || subStateMachineState == "Moving" || subStateMachineState == "Queuing"))
-            {
-                unstuckTimer = 0.0f;
-            }
-            else
-            {
-                if (unstuckTimer < stuckThreshold)
-                {
-                    unstuckTimer += Time.deltaTime;
-                }
-                else
-                {
-                    Debug.Log(gameObject + " is stuck!");
-
-                    
-
-                    unstuckTimer = 0.0f;
-                }
-            }
-        }
-    }
+    
 
     public ShelfContainer TaskDestinationAsShelf()
     {
@@ -294,6 +278,22 @@ public class NormalCustomer_AI : MonoBehaviour
         equippedItem.transform.SetParent(equippedPosition);
         equippedItem.transform.localPosition = Vector3.zero;
     }
+    public GameObject UnequipItem()
+    {
+        if (!equippedItem) return null;
+
+        GameObject wasHolding = equippedItem;
+
+        // Get rigidbody on item and enable physics
+        Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
+        productRB.isKinematic = false;
+
+        // De-attach item from player and remove item from equip slot
+        equippedItem.transform.SetParent(null);
+        equippedItem = null;
+
+        return wasHolding;
+    }
 
     public void Interact()
     {
@@ -320,42 +320,6 @@ public class NormalCustomer_AI : MonoBehaviour
             GameObject newItem = Object.Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
             EquipItem(newItem.transform);
         }
-    }
-
-    Vector3 CalculateTransformVelocity()
-    {
-        return (transform.position - previousPosition) / Time.deltaTime;
-    }
-
-    /// <summary>
-    /// Rotates subject towards the target using SmoothDamp
-    /// </summary>
-    /// <param name="transformToTurn">Subject to turn.</param>
-    /// <param name="target">Target to turn subject towards.</param>
-    /// <param name="currentVelocity">The current velocity, this value is modified by the function every time you call it.</param>
-    /// <param name="smoothTime">Approximately the time it will take to reach the target. A smaller value will reach the target faster.</param>
-    /// <returns>The delta angle between the direction the subject is facing to target position.</returns>
-    public float RotateTowardsTargetSmoothDamp(Transform transformToTurn, Transform target, ref Quaternion currentVelocity, float smoothTime)
-    {
-        // Calculate direction to target
-        Vector3 targetRot = target.position - transformToTurn.position;
-        targetRot.y = 0.0f;
-        targetRot.Normalize();
-
-        // SmoothDamp towards to target rotation
-        transformToTurn.rotation =
-            QuaternionUtil.SmoothDamp(
-                transformToTurn.rotation,
-                Quaternion.LookRotation(targetRot),
-                ref currentVelocity,
-                smoothTime
-            );
-
-        // Debug visuals
-        Debug.DrawRay(transformToTurn.position, targetRot * 5.0f, Color.green);
-        Debug.DrawRay(transformToTurn.position, transformToTurn.forward * 5.0f, Color.red);
-
-        return Vector3.Angle(transformToTurn.forward, targetRot);
     }
 
     public NormalCustomer_SM GetPreviousState()
