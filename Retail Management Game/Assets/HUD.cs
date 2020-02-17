@@ -74,14 +74,15 @@ public class HUD : MonoBehaviour
     {
         u_UpsetC.text = newAmount.ToString();
 
-        if (newAmount != previousUpsetCount && previousUpsetCount == 0)
-        {
-            a_UpsetC.SetBool("IsIn", true);
-        }
-        else
-        {
-            a_UpsetC.SetTrigger("Bounce");
-        }
+        if (a_UpsetC)
+            if (newAmount != previousUpsetCount && previousUpsetCount == 0)
+            {
+                a_UpsetC.SetBool("IsIn", true);
+            }
+            else
+            {
+                a_UpsetC.SetTrigger("Bounce");
+            }
 
         previousUpsetCount = newAmount;
     }

@@ -42,10 +42,10 @@ public class NormalCustomer_AI : MonoBehaviour
     //************************************************************************
     // States
 
-    [HideInInspector] public GetProductState getProductState;
-    [HideInInspector] public LeavingState leavingState;
-    [HideInInspector] public PurchaseState purchaseProductState;
-    [HideInInspector] public WaitingForProductState waitForProductState;
+    [HideInInspector] public GetProductState_NC getProductState;
+    [HideInInspector] public LeavingState_NC leavingState;
+    [HideInInspector] public PurchaseState_NC purchaseProductState;
+    [HideInInspector] public WaitingForProductState_NC waitForProductState;
 
     //************************************************************************
     // Runtime Variables
@@ -116,11 +116,6 @@ public class NormalCustomer_AI : MonoBehaviour
         }
         
     }
-    
-    //.~'~.~'~.~'~.~'~.~//
-    // Brandon Alvarado //
-    // 991368826        //
-    //.~'~.~'~.~'~.~'~.~//
 
     // Allows player to push rigidbody objects
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -156,10 +151,10 @@ public class NormalCustomer_AI : MonoBehaviour
 
     void Awake()
     {
-        getProductState = new GetProductState(this);
-        leavingState = new LeavingState(this);
-        purchaseProductState = new PurchaseState(this);
-        waitForProductState = new WaitingForProductState(this);
+        getProductState = new GetProductState_NC(this);
+        leavingState = new LeavingState_NC(this);
+        purchaseProductState = new PurchaseState_NC(this);
+        waitForProductState = new WaitingForProductState_NC(this);
     }
 
     // Start is called before the first frame update

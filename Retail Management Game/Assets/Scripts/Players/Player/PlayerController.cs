@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
     [Range(0.0f, 1.0f)]
     [SerializeField] float rotationSpeed = 1.0f;
     [Range(45.0f, 90.0f)]
+    [SerializeField] bool movementRelativeToCamera = false;
     [SerializeField] float pickupAngle = 90.0f;
     [SerializeField] float maxPickupDistance = 2.0f;
     //[SerializeField] float maxShelfDistance = 0.5f;
@@ -345,6 +346,11 @@ public class PlayerController : MonoBehaviour
     {
         // Only walk when player is in walking mode
         if (currentPlayerMode != PlayerMode.Walking) return;
+
+        if (movementRelativeToCamera)
+        {
+            // TODO: Toggle camera relative movement
+        }
 
         // Calculate relative camera direction
         Vector3 relativeDirection = currentCamera.transform.TransformVector(playerDirection);
