@@ -2,14 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using System;
 
 public class ShelfContainer : MonoBehaviour
 {
     [Header("Shelf Status")]
+    [SerializeField] private StockData stock;
     [SerializeField] private StockTypes shelfStockType = StockTypes.None;
     [SerializeField] private int stockAmount = 0;
     [SerializeField] private int shelfSize = 10;
     [SerializeField] private float playerDetectionDistance = 1.0f;
+    [SerializeField] private Bounds boundsOfShelf;
 
     [Header("Pickup Faces")]
 
@@ -34,10 +37,7 @@ public class ShelfContainer : MonoBehaviour
     [SerializeField] GameObject stockToaster = null;
     
     Vector3[] pickupPositions = null;
-
-    const float stuckObjectMaxTime = 1.0f;
     int previousStockAmount = 0;
-    Dictionary<Transform, float> stuckObjects = new Dictionary<Transform, float>();
 
     List<ShelfContainer> adjacentShelves = new List<ShelfContainer>();
 
@@ -49,30 +49,30 @@ public class ShelfContainer : MonoBehaviour
     {
         Gizmos.color = new Color(0.0f, 1.0f, 0.0f, 0.5f);
 
-        Bounds boundsOfSelf = EssentialFunctions.GetMaxBounds(gameObject);
+        boundsOfShelf = GetShelfBounds();
 
         if (allowPickup_F)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * 0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
+            Gizmos.DrawCube(boundsOfShelf.center + (transform.forward * 0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
         if (allowPickup_B)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.forward * -0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
+            Gizmos.DrawCube(boundsOfShelf.center + (transform.forward * -0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
         if (allowPickup_L)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * -0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
+            Gizmos.DrawCube(boundsOfShelf.center + (transform.right * -0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
         if (allowPickup_R)
         {
-            Gizmos.DrawCube(boundsOfSelf.center + (transform.right * 0.5f), new Vector3(0.1f, boundsOfSelf.size.y, 0.1f));
+            Gizmos.DrawCube(boundsOfShelf.center + (transform.right * 0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
         Gizmos.color = new Color(0.0f, 1.0f, 1.0f, 0.5f);
-        Gizmos.DrawWireCube(boundsOfSelf.center, boundsOfSelf.size + new Vector3(playerDetectionDistance, 0.0f, playerDetectionDistance));
+        Gizmos.DrawWireCube(boundsOfShelf.center, boundsOfShelf.size + new Vector3(playerDetectionDistance, 0.0f, playerDetectionDistance));
 
         
         foreach(ShelfContainer shelf in GetAllAdjacentShelves())
@@ -97,10 +97,47 @@ public class ShelfContainer : MonoBehaviour
         stockAmount = Mathf.Clamp(stockAmount, 0, shelfSize);
 
         UpdatePickupPositionsArray();
-        UpdateVisuals();
+        
 
         adjacentShelves.Clear();
         adjacentShelves.AddRange(GetAdjacentShelves());
+
+        // Update Stock
+        ShelfVisual[] c = transform.GetComponentsInChildren<ShelfVisual>();
+
+        if (c.Length > 0)
+        {
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                for (int i = 0; i < c.Length; i++)
+                {
+                    DestroyImmediate(c[i].gameObject);
+                }
+            };  
+        }
+
+        shelfVisual = null;
+        shelfStockType = StockTypes.None;
+
+        if (stock)
+        {
+            // Setup stats
+            shelfStockType = stock.GetStockType();
+            GameObject newStockVisual = null;
+
+            // Setup Visuals
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                newStockVisual = Instantiate(stock.GetStockVisual());
+
+                shelfVisual = newStockVisual.GetComponent<ShelfVisual>();
+
+                newStockVisual.transform.parent = transform;
+                newStockVisual.transform.localPosition = Vector3.zero;
+            };
+        }
+
+        UpdateVisuals();
     }
 
     #region Collisions
@@ -116,62 +153,71 @@ public class ShelfContainer : MonoBehaviour
         // Add products to the shelf if it hits it hard enough
         if (collision.relativeVelocity.magnitude < collisionSensitivity) return;
 
-        switch (other.tag)
+        StockItem stockItem = other.GetComponent<StockItem>();
+        int result = 0;
+
+        if (other.CompareTag("Product") || other.CompareTag("StockCrate"))
         {
-            case "Product":
-                {
-                    Debug.Log("Adding product to shelf!");
+            // Claim the product before any other shelf can >:D
+            if (stockItem.IsClaimed()) return;
+            else stockItem.ClaimItem(gameObject);
 
-                    StockItem stockItem = other.GetComponent<StockItem>();
-
-                    // Claim the product before any other shelf can >:D
-                    if (stockItem.IsClaimed()) return;
-                    else stockItem.ClaimItem(gameObject);
-
-                    int result = AddStock(stockItem.GetStockType());
-
-                    if (result == 0)
-                        Destroy(other);
-
-                    break;
-                }
-            case "StockCrate":
-                {
-                    StockCrate stockCrate = other.GetComponent<StockCrate>();
-
-                    // Claim the product before any other shelf can >:D
-                    if (stockCrate.IsClaimed()) return;
-                    else stockCrate.ClaimItem(gameObject);
-
-                    int result = AddCrate(stockCrate);
-
-                    Debug.Log(result);
-
-                    if (result <= 0)
-                        Destroy(other);
-
-                    break;
-                }
+            result = AddStock(stockItem.GetStockType());
         }
+
+        Debug.Log(result);
+
+        if (result == 0)
+            Destroy(other);
+        else
+            stockItem.UnclaimItem(gameObject);
     }
 
     private void OnCollisionStay(Collision collision)
     {
-        foreach(ContactPoint contactPoint in collision.contacts)
+        foreach (ContactPoint contactPoint in collision.contacts)
         {
             Transform other = contactPoint.otherCollider.transform.root;
 
-            if (other == stuckObjects.ContainsKey(other))
-            {
-                stuckObjects.TryGetValue(other, out float timer);
+            int result = 0;
 
-                if (timer <= 0.0f)
+            StockItem stockItem = other.GetComponent<StockItem>();
+
+            if (other.CompareTag("Product") || other.CompareTag("StockCrate"))
+            {
+                // Claim the product before any other shelf can >:D
+                if (stockItem.IsClaimed()) return;
+                else stockItem.ClaimItem(gameObject);
+
+                result = AddStock(stockItem.GetStockType());
+            }
+
+            Debug.Log(result);
+
+            if (result == 0)
+                Destroy(other.gameObject);
+            else
+            {
+                // Unclaim item
+                stockItem.UnclaimItem(gameObject);
+
+                // Get the damn item out of this shelf
+                if (allowPickup_F)
                 {
-                    Debug.Log("LOL! " + other + " is stuck in " + transform + "! XD");
+                    other.transform.position = boundsOfShelf.center + (transform.forward * 0.5f);
+                }
+                else if (allowPickup_B)
+                {
+                    other.transform.position = boundsOfShelf.center + (transform.forward * -0.5f);
+                }
+
+                else if (allowPickup_L)
+                {
+                    other.transform.position = boundsOfShelf.center + (transform.forward * -0.5f);
                 }
                 else
                 {
-                    //stuckObjects.
+                    other.transform.position = boundsOfShelf.center + (transform.right * 0.5f);
                 }
             }
         }
@@ -186,6 +232,8 @@ public class ShelfContainer : MonoBehaviour
 
         // Get MapManager
         mapManager = MapManager.GetInstance();
+
+        boundsOfShelf = GetShelfBounds();
 
         adjacentShelves.Clear();
         adjacentShelves.AddRange(GetAdjacentShelves());
@@ -219,7 +267,6 @@ public class ShelfContainer : MonoBehaviour
             billboardAnimator.SetBool("ShowNum", IsPlayerInDetectionBox());
         }
         
-
         previousStockAmount = stockAmount;
     }
 
@@ -603,5 +650,10 @@ public class ShelfContainer : MonoBehaviour
             0.8f,
             EasingFunction.Ease.OutExpo,
             4.0f);
+    }
+
+    public Bounds GetShelfBounds()
+    {
+        return EssentialFunctions.GetMaxBounds(gameObject);
     }
 }

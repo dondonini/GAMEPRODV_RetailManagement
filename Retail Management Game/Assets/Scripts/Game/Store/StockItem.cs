@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class StockItem : MonoBehaviour
 {
-    [SerializeField] private StockTypes stockType = StockTypes.None;
+    [SerializeField] protected StockTypes stockType = StockTypes.None;
 
     GameObject firstClaim = null;
 
@@ -22,5 +22,15 @@ public class StockItem : MonoBehaviour
     public void ClaimItem(GameObject other)
     {
         firstClaim = other;
+    }
+
+    public void UnclaimItem(GameObject claimer)
+    {
+        if (firstClaim == claimer)
+            firstClaim = null;
+        else
+        {
+            Debug.Log(claimer + " is not first claim of " + gameObject);
+        }
     }
 }

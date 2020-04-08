@@ -22,7 +22,7 @@ public class MapManager : MonoBehaviour
     [SerializeField] List<TruckDriver> trucks = new List<TruckDriver>();
 
     [Header("Prefabs")]
-    public StockToPrefabType[] stockPrefabs;
+    public StockData[] stockPrefabs;
 
     [Header("Level Unlocks")]
     public UnlockSegment[] unlockableSegments;
@@ -364,7 +364,7 @@ public class MapManager : MonoBehaviour
         for (int c = 0; c < stockPrefabs.Length; c++)
         {
             // Collect stock pack
-            StockToPrefabType stockPrefabPack = stockPrefabs[c];
+            StockData stockPrefabPack = stockPrefabs[c];
 
             // Check if stockType matches what you're looking for
             if (stockPrefabPack.GetStockType() == stockType)
@@ -391,7 +391,7 @@ public class MapManager : MonoBehaviour
 
     public int GetStockTypePrice(StockTypes stockType)
     {
-        StockToPrefabType stockToPrefabType = null;
+        StockData stockToPrefabType = null;
 
         for (int i = 0; i < stockPrefabs.Length; i++)
         {
@@ -409,7 +409,7 @@ public class MapManager : MonoBehaviour
 
     public Sprite GetStockTypeThumbnail(StockTypes stockType)
     {
-        StockToPrefabType stockToPrefabType = null;
+        StockData stockToPrefabType = null;
 
         for (int i = 0; i < stockPrefabs.Length; i++)
         {

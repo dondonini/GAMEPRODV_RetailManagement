@@ -312,7 +312,7 @@ public class NormalCustomer_AI : MonoBehaviour
 
         if (amount != 0)
         {
-            GameObject newItem = Object.Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
+            GameObject newItem = Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
             EquipItem(newItem.transform);
         }
     }

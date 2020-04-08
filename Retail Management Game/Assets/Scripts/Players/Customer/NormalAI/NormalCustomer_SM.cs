@@ -2,18 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface NormalCustomer_SM
+public interface NormalCustomer_SM : Base_SM
 {
-    // Main functions
-
-    void StartState();
-
-    void ExitState();
-
-    void UpdateState();
-
-    void FixedUpdateState();
-
     // Transitions
 
     void ToGetProductState();

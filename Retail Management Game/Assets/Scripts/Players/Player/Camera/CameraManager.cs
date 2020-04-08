@@ -2,6 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum lockAxisOptions
+{
+    None,
+    X,
+    Y,
+    Z,
+    XY,
+    XZ,
+    XYZ
+}
+
 public class CameraManager : MonoBehaviour 
 {
     [Header("Global Variables")]
@@ -12,6 +23,7 @@ public class CameraManager : MonoBehaviour
     public float paddingAmount = 10.0f;
     [Range(0.0f, 1.0f)]
     public float tildEffectAmount = 0.0f;
+    public lockAxisOptions LockAxis = lockAxisOptions.None;
 
     [Header("Default Player Camera Settings")]
 
@@ -92,15 +104,30 @@ public class CameraManager : MonoBehaviour
 
         Debug.DrawLine(CalculateCameraPosition(), GetPlayersBounds().center, Color.cyan);
 
+        // Move camera rig position
         transform.position = Vector3.SmoothDamp(transform.position, CalculateCameraPosition(), ref cameraVelocity, cameraMovementDamp);
         transform.eulerAngles = new Vector3(cameraAngleRotation, 0.0f, 0.0f);
 
+        // Move camera
         mainCamera.transform.localPosition = Vector3.SmoothDamp(mainCamera.transform.localPosition, new Vector3(0.0f, 0.0f, cameraDistance), ref dollyVelocity, cameraMovementDamp);
 
-        cameraAim.position = Vector3.SmoothDamp(cameraAim.position, tiltAddedPosition, ref aimVelocity, cameraRotationDamp);
+        // Move aim position
+        Vector3 newCameraAimPos = Vector3.SmoothDamp(cameraAim.position, tiltAddedPosition, ref aimVelocity, cameraRotationDamp);
 
+        if (LockAxis == lockAxisOptions.X || LockAxis == lockAxisOptions.XY || LockAxis == lockAxisOptions.XYZ || LockAxis == lockAxisOptions.XZ)
+            newCameraAimPos.x = transform.position.x;
+
+        if (LockAxis == lockAxisOptions.Y || LockAxis == lockAxisOptions.XY || LockAxis == lockAxisOptions.XYZ)
+            newCameraAimPos.y = transform.position.y;
+
+        if (LockAxis == lockAxisOptions.Z || LockAxis == lockAxisOptions.XYZ || LockAxis == lockAxisOptions.XZ)
+            newCameraAimPos.z = transform.position.z;
+
+
+        cameraAim.position = newCameraAimPos;
+
+        // Make camera point at aim position
         mainCamera.transform.LookAt(cameraAim);
-
     }
 
     Vector3 CalculateCameraPosition()

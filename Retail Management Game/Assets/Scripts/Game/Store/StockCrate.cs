@@ -4,9 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class StockCrate : MonoBehaviour
+public class StockCrate : StockItem
 {
-    [SerializeField] StockTypes stockType = StockTypes.None;
     [SerializeField] int stockQuantity = 0;
     [SerializeField] int maxQuantity = 10;
     [SerializeField] float billboardDistance = 1.0f;
@@ -28,8 +27,6 @@ public class StockCrate : MonoBehaviour
     MapManager mapManager = null;
 
     StockTypes previousStockType = StockTypes.None;
-
-    GameObject firstClaim = null;
 
     int previousStockNum = 0;
 
@@ -57,7 +54,7 @@ public class StockCrate : MonoBehaviour
 
     private void Update()
     {
-        if (stockType != previousStockType)
+        if (GetStockType() != previousStockType)
         {
             // Stock changed!
             UpdateThumbnail();
@@ -75,18 +72,13 @@ public class StockCrate : MonoBehaviour
         if (stockQuantity == 0)
             Destroy(gameObject);
 
-        previousStockType = stockType;
+        previousStockType = GetStockType();
         previousStockNum = stockQuantity;
     }
 
     private void LateUpdate()
     {
         billboard.transform.position = transform.position + new Vector3(0.0f, billboardDistance, 0.0f);
-    }
-
-    public StockTypes GetStockType()
-    {
-        return stockType;
     }
 
     public void SetStockType(StockTypes newStockType)
@@ -122,7 +114,7 @@ public class StockCrate : MonoBehaviour
 
     private void UpdateThumbnail()
     {
-        Sprite thumbnail = mapManager.GetStockTypeThumbnail(stockType);
+        Sprite thumbnail = mapManager.GetStockTypeThumbnail(GetStockType());
 
         billboardStockImage.sprite = thumbnail;
     }
@@ -145,32 +137,6 @@ public class StockCrate : MonoBehaviour
         numColor.a = fadePercentage;
         billboardStockNum.color = numColor;
 
-    }
-
-    #endregion
-
-    #region Claiming System
-
-    public GameObject IsClaimed()
-    {
-        return firstClaim;
-    }
-
-    public void ClaimItem(GameObject other)
-    {
-        firstClaim = other;
-    }
-
-    public void UnclaimItem(GameObject other)
-    {
-        if (firstClaim == other)
-        {
-            firstClaim = null;
-        }
-        else
-        {
-            Debug.Log(other + " is not first claim of " + gameObject);
-        }
     }
 
     #endregion
