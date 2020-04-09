@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public interface NormalCustomer_SM : Base_SM
+﻿public interface INormalCustomer_SM : IBase_SM
 {
     // Transitions
 

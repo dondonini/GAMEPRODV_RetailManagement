@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public interface Base_SM
+﻿public interface IBase_SM
 {
     void StartState();
 
@@ -11,4 +7,8 @@ public interface Base_SM
     void UpdateState();
 
     void FixedUpdateState();
+
+    void InterruptState();
+
+    void UpdateActions();
 }

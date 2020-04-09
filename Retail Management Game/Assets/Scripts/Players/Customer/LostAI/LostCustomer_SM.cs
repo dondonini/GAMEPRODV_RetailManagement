@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public interface LostCustomer_SM : Base_SM
+﻿public interface ILostCustomer_SM : IBase_SM
 {
 
     // Transition Functions
