@@ -6,29 +6,31 @@ using TMPro;
 
 public class StockCrate : StockItem
 {
-    [SerializeField] int stockQuantity = 0;
-    [SerializeField] int maxQuantity = 10;
-    [SerializeField] float billboardDistance = 1.0f;
+    [SerializeField] private int stockQuantity = 0;
+    [SerializeField] private int maxQuantity = 10;
+    [SerializeField] private float billboardDistance = 1.0f;
 
-    [SerializeField] float playerDetectionRadius = 1.0f;
-    [SerializeField] float crossfadeSpeed = 1.0f;
+    [SerializeField] private float playerDetectionRadius = 1.0f;
+    [SerializeField] private float crossfadeSpeed = 1.0f;
 
     [Header("Billboard References")]
-    [SerializeField] Transform billboard = null;
-    [SerializeField] TextMeshProUGUI billboardStockNum = null;
-    [SerializeField] Image billboardStockImage = null;
-    [SerializeField] Animator billboardAnimator = null;
+    [SerializeField] private Transform billboard = null;
+    [SerializeField] private TextMeshProUGUI billboardStockNum = null;
+    [SerializeField] private Image billboardStockImage = null;
+    [SerializeField] private Animator billboardAnimator = null;
     [Range(0.0f, 1.0f)]
-    [SerializeField] float billboardCrossfadePercentage = 0.0f;
+    [SerializeField] private float billboardCrossfadePercentage = 0.0f;
 
     [Header("Stock Toaster")]
-    [SerializeField] GameObject stockToaster;
+    [SerializeField]
+    private GameObject stockToaster;
 
-    MapManager mapManager = null;
+    private MapManager _mapManager = null;
 
-    StockTypes previousStockType = StockTypes.None;
+    private StockTypes _previousStockType = StockTypes.None;
 
-    int previousStockNum = 0;
+    private int _previousStockNum = 0;
+    private static readonly int showImage = Animator.StringToHash("ShowImage");
 
     private void OnValidate()
     {
@@ -43,37 +45,37 @@ public class StockCrate : StockItem
 
     private void Start()
     {
-        mapManager = MapManager.GetInstance();
+        _mapManager = MapManager.GetInstance();
 
         UpdateThumbnail();
 
-        previousStockNum = stockQuantity;
+        _previousStockNum = stockQuantity;
 
         UpdateStockNum();
     }
 
     private void Update()
     {
-        if (GetStockType() != previousStockType)
+        if (GetStockType() != _previousStockType)
         {
             // Stock changed!
             UpdateThumbnail();
         }
 
-        if (stockQuantity != previousStockNum)
+        if (stockQuantity != _previousStockNum)
         {
             UpdateStockNum();
         }
 
-        billboardAnimator.SetBool("ShowImage", IsPlayerInDetectionRadius());
+        billboardAnimator.SetBool(showImage, IsPlayerInDetectionRadius());
 
         UpdateThumbnailNumCrossfade(billboardCrossfadePercentage);
 
         if (stockQuantity == 0)
             Destroy(gameObject);
 
-        previousStockType = GetStockType();
-        previousStockNum = stockQuantity;
+        _previousStockType = GetStockType();
+        _previousStockNum = stockQuantity;
     }
 
     private void LateUpdate()
@@ -114,7 +116,7 @@ public class StockCrate : StockItem
 
     private void UpdateThumbnail()
     {
-        Sprite thumbnail = mapManager.GetStockTypeThumbnail(GetStockType());
+        Sprite thumbnail = _mapManager.GetStockTypeThumbnail(GetStockType());
 
         billboardStockImage.sprite = thumbnail;
     }
@@ -141,23 +143,26 @@ public class StockCrate : StockItem
 
     #endregion
 
-    bool IsPlayerInDetectionRadius()
+    private bool IsPlayerInDetectionRadius()
     {
-        Collider[] characters = Physics.OverlapSphere(transform.position, playerDetectionRadius, LayerMask.GetMask("Character"));
+        Collider[] characters = { };
+        int charactersLength = Physics.OverlapSphereNonAlloc(transform.position,
+            playerDetectionRadius,
+            characters,
+            LayerMask.GetMask("Character"));
 
-        for (int i = 0; i < characters.Length; i++)
+        for (int i = 0; i < charactersLength; i++)
         {
-            if (characters[i].transform.root.CompareTag("Player"))
-            {
-                Debug.Log("Player is near!");
-                return true;
-            }
+            if (!characters[i].transform.root.CompareTag("Player")) continue;
+            
+            Debug.Log("Player is near!");
+            return true;
         }
 
         return false;
     }
 
-    void PushStockToaster(int amount)
+    private void PushStockToaster(int amount)
     {
         GameObject newToaster = Instantiate(stockToaster) as GameObject;
 
@@ -166,12 +171,21 @@ public class StockCrate : StockItem
         Color fontColour = amount > 0 ? Color.green : Color.red;
 
         UIToaster uiToaster = newToaster.GetComponent<UIToaster>();
-        uiToaster.SetupToaster(
-            amount.ToString(),
+        uiToaster.SetupToaster(amount.ToString(),
             fontColour,
             1.0f,
             0.8f,
             EasingFunction.Ease.OutExpo,
             4.0f);
+    }
+
+    public override StockItem TakeProduct()
+    {
+        // Subtract one from crate
+        SetQuantity(GetQuantity() - 1);
+
+        GameObject newItem = Instantiate(_mapManager.GetStockTypePrefab(stockType));
+        
+        return newItem.GetComponent<StockItem>();
     }
 }

@@ -4,4 +4,6 @@
     GoToRegister,
     PuchaseProduct,
     LeaveStore,
+    Wander,
+    Follow
 }

@@ -17,58 +17,66 @@ public class PlayerController : MonoBehaviour
 
     /************************************************/
     [Header("Player Adjustments")]
-    [SerializeField] float movmentSpeed = 10.0f;
+    [SerializeField]
+    private float movementSpeed = 10.0f;
     [Range(0.0f, 1.0f)]
-    [SerializeField] float rotationSpeed = 1.0f;
+    [SerializeField]
+    private float rotationSpeed = 1.0f;
     [Range(45.0f, 90.0f)]
-    [SerializeField] bool movementRelativeToCamera = false;
-    [SerializeField] float pickupAngle = 90.0f;
-    [SerializeField] float maxPickupDistance = 2.0f;
+    [SerializeField]
+    private bool movementRelativeToCamera;
+    [SerializeField] private float pickupAngle = 90.0f;
+    [SerializeField] private float maxPickupDistance = 2.0f;
     //[SerializeField] float maxShelfDistance = 0.5f;
-    [SerializeField] float dashMultiplier = 100.0f;
-    [SerializeField] float dashDuration = 5.0f;
+    [SerializeField] private float dashMultiplier = 100.0f;
+    [SerializeField] private float dashDuration = 5.0f;
     [Tooltip("The amount of force when throwing your equipped item.")]
-    [SerializeField] float throwPower = 100.0f;
-    [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
-    [SerializeField] float pushPower = 2.0f;
+    [SerializeField]
+    private float throwPower = 100.0f;
+    [Tooltip("Push multiplier when the character hits other rigidbodies.")]
+    [SerializeField]
+    private float pushPower = 2.0f;
     [Tooltip("The gap between button presses until it detects a double tap.")]
-    [SerializeField] int doubleTapThreshold = 100;
+    [SerializeField]
+    private int doubleTapThreshold = 100;
     [Tooltip("How long you have to hold the drop button until it turns into a throw action in milliseconds.")]
-    [SerializeField] int holdThreshold = 125;
+    [SerializeField]
+    private int holdThreshold = 125;
 
     /************************************************/
     [Space]
     [Header("Links")]
-    [SerializeField] Camera currentCamera = null;
-    [SerializeField] CharacterController characterController = null;
-    [SerializeField] Transform equippedPosition = null;
-    [SerializeField] BoxCollider pickupArea = null;
-    GameObject equippedItem = null;
+    [SerializeField]
+    private Camera currentCamera;
+    [SerializeField] private CharacterController characterController;
+    [SerializeField] private Transform equippedPosition;
+    [SerializeField] private BoxCollider pickupArea;
+    private GameObject _equippedItem;
 
     /************************************************/
     // Runtime Variables
 
-    PlayerMode currentPlayerMode = PlayerMode.Walking;
+    private PlayerMode _currentPlayerMode = PlayerMode.Walking;
 
-    Vector3 playerDirection = Vector3.zero;
-    Vector3 playerVelocity = Vector3.zero;
-    Vector3 previousPlayerPosition = Vector3.zero;
-    bool throwItem = false;
-    bool justPickedUp = false;
-    string lastPressedKeyControl = "";
+    private Vector3 _playerDirection = Vector3.zero;
+    private Vector3 _playerVelocity = Vector3.zero;
+    private Vector3 _previousPlayerPosition = Vector3.zero;
+    private bool _throwItem;
+    private bool _justPickedUp;
+    private string _lastPressedKeyControl = "";
 
     // Timers
-    float dashTapTimer = 0.0f;
-    int dashTapCount = 0;
-    float dashTimer = 0.0f;
-    float throwHoldTimer = 0.0f;
+    private float _dashTapTimer;
+    private int _dashTapCount;
+    private float _dashTimer;
+    private float _throwHoldTimer;
 
     // Managers
-    MapManager mapManager;
-    GameManager gameManager;
+    private MapManager _mapManager;
+    private GameManager _gameManager;
 
     // Current Interactive
-    CashRegister interact_Register = null;
+    private CashRegister _interactRegister;
 
     private void OnDrawGizmos()
     {
@@ -100,7 +108,7 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 movementVector = context.ReadValue<Vector2>();
 
-        playerDirection = new Vector3(movementVector.x, 0.0f, movementVector.y);
+        _playerDirection = new Vector3(movementVector.x, 0.0f, movementVector.y);
 
         // Check if input device is the keyboard
         if (context.control.device.name == "Keyboard" && context.started)
@@ -110,22 +118,22 @@ public class PlayerController : MonoBehaviour
             // Detect if change is not cancelled
             if (movementVector.magnitude > 0.0f)
             {
-                if (keyControl.name != lastPressedKeyControl)
+                if (keyControl != null && keyControl.name != _lastPressedKeyControl)
                 {
-                    lastPressedKeyControl = keyControl.name;
+                    _lastPressedKeyControl = keyControl.name;
                 }
                 else
                 {
-                    if (dashTapTimer > 0.0f)
+                    if (_dashTapTimer > 0.0f)
                     {
-                        dashTapCount++;
+                        _dashTapCount++;
                     }
-                    dashTapTimer = doubleTapThreshold / 1000.0f;
+                    _dashTapTimer = doubleTapThreshold / 1000.0f;
                 }
             }
         }
 
-        if (dashTapCount == 1)
+        if (_dashTapCount == 1)
         {
             // TODO: Implement dash
             Dash();
@@ -134,18 +142,19 @@ public class PlayerController : MonoBehaviour
 
     public void OnDash(InputAction.CallbackContext context)
     {
-        if (context.performed)
-            if (dashTimer <= 0.0f)
-                Dash();
+        if (!context.performed) return;
+        
+        if (_dashTimer <= 0.0f)
+            Dash();
     }
 
     public void OnPickup(InputAction.CallbackContext context)
     {
-        if (gameManager && gameManager.IsGameOver())
-            gameManager.ToScoreBoard();
+        if (_gameManager && _gameManager.IsGameOver())
+            _gameManager.ToScoreBoard();
 
 
-        switch (currentPlayerMode)
+        switch (_currentPlayerMode)
         {
             case PlayerMode.Walking:
                 {
@@ -153,10 +162,10 @@ public class PlayerController : MonoBehaviour
                     if (context.started)
                     {
                         // Check if player is already holding an item
-                        if (equippedItem)
+                        if (_equippedItem)
                         {
                             // Start throw timer
-                            throwHoldTimer = holdThreshold / 1000.0f;
+                            _throwHoldTimer = holdThreshold / 1000.0f;
                         }
                         else
                         {
@@ -166,12 +175,12 @@ public class PlayerController : MonoBehaviour
                     else if (context.canceled)
                     {
                         // Check if player just picked up a new item
-                        if (!justPickedUp)
+                        if (!_justPickedUp)
                         {
-                            throwHoldTimer = 0.0f;
+                            _throwHoldTimer = 0.0f;
 
                             // To throw it or not?? Hmmm?
-                            if (throwItem)
+                            if (_throwItem)
                             {
                                 Debug.Log("LMAO, MANZ ACTUALLY DID IT! XDDD");
 
@@ -188,11 +197,11 @@ public class PlayerController : MonoBehaviour
                         }
                         else
                         {
-                            justPickedUp = false;
+                            _justPickedUp = false;
                         }
                     }
 
-                    throwItem = false;
+                    _throwItem = false;
 
                     break;
                 }
@@ -200,10 +209,14 @@ public class PlayerController : MonoBehaviour
                 {
                     if (!context.performed) return;
 
-                    interact_Register.CashCustomerOut();
+                    _interactRegister.CashCustomerOut();
 
                     break;
                 }
+            case PlayerMode.Receiving:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
         
     }
@@ -212,7 +225,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!context.performed) return;
 
-        switch (currentPlayerMode)
+        switch (_currentPlayerMode)
         {
             case PlayerMode.Walking:
                 {
@@ -222,11 +235,15 @@ public class PlayerController : MonoBehaviour
                 }
             case PlayerMode.Cashier:
                 {
-                    interact_Register = null;
-                    currentPlayerMode = PlayerMode.Walking;
+                    _interactRegister = null;
+                    _currentPlayerMode = PlayerMode.Walking;
 
                     break;
                 }
+            case PlayerMode.Receiving:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
@@ -234,18 +251,18 @@ public class PlayerController : MonoBehaviour
     {
         if (!context.performed) return;
 
-        if (gameManager.GetGameState() == GameState.Paused)
+        if (_gameManager.GetGameState() == GameState.Paused)
         {
-            gameManager.ResumeGame();
+            _gameManager.ResumeGame();
         }
         else
         {
-            gameManager.PauseGame();
+            _gameManager.PauseGame();
         }
     }
 
     // Allows player to push rigidbody objects
-    void OnControllerColliderHit(ControllerColliderHit hit)
+    private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         Rigidbody body = hit.collider.attachedRigidbody;
 
@@ -273,65 +290,65 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        mapManager = MapManager.GetInstance();
-        gameManager = GameManager.GetInstance();
+        _mapManager = MapManager.GetInstance();
+        _gameManager = GameManager.GetInstance();
 
-        previousPlayerPosition = transform.position;
+        _previousPlayerPosition = transform.position;
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         UpdatePlayer();
 
         #region Timer Management
 
         // Decrease dash timer for multi tap detection
-        if (dashTapTimer > 0.0f)
+        if (_dashTapTimer > 0.0f)
         {
-            dashTapTimer -= Time.deltaTime;
+            _dashTapTimer -= Time.deltaTime;
         }
-        else if (dashTapTimer < 0.0f)
+        else if (_dashTapTimer < 0.0f)
         {
-            dashTapTimer = 0.0f;
-            dashTapCount = 0;
-            lastPressedKeyControl = "";
+            _dashTapTimer = 0.0f;
+            _dashTapCount = 0;
+            _lastPressedKeyControl = "";
         }
 
-        if (dashTimer > 0.0f)
+        if (_dashTimer > 0.0f)
         {
-            dashTimer -= Time.deltaTime;
+            _dashTimer -= Time.deltaTime;
         }
-        else if (dashTimer < 0.0f)
+        else if (_dashTimer < 0.0f)
         {
-            dashTimer = 0.0f;
+            _dashTimer = 0.0f;
         }
 
         // Decrease throw timer for hold detection
-        if (equippedItem)
+        if (_equippedItem)
         {
-            if (throwHoldTimer > 0.0f)
+            if (_throwHoldTimer > 0.0f)
             {
-                throwHoldTimer -= Time.deltaTime;
+                _throwHoldTimer -= Time.deltaTime;
             }
-            else if (throwHoldTimer < 0.0f)
+            else if (_throwHoldTimer < 0.0f)
             {
-                throwHoldTimer = 0.0f;
+                _throwHoldTimer = 0.0f;
 
-                if (!throwItem)
+                if (!_throwItem)
                 {
                     Debug.Log("THROW IT! YOU WON'T!");
-                    throwItem = true;
+                    _throwItem = true;
                 }
             }
         }
         #endregion
 
-        playerVelocity = (transform.position - previousPlayerPosition) * Time.deltaTime;
+        _playerVelocity = (transform.position - _previousPlayerPosition) * Time.deltaTime;
 
-        previousPlayerPosition = transform.position;
+        _previousPlayerPosition = transform.position;
     }
 
     private void FixedUpdate()
@@ -345,7 +362,7 @@ public class PlayerController : MonoBehaviour
     private void UpdatePlayer()
     {
         // Only walk when player is in walking mode
-        if (currentPlayerMode != PlayerMode.Walking) return;
+        if (_currentPlayerMode != PlayerMode.Walking) return;
 
         if (movementRelativeToCamera)
         {
@@ -353,22 +370,24 @@ public class PlayerController : MonoBehaviour
         }
 
         // Calculate relative camera direction
-        Vector3 relativeDirection = currentCamera.transform.TransformVector(playerDirection);
+        Vector3 relativeDirection = currentCamera.transform.TransformVector(_playerDirection);
         relativeDirection.Scale(Vector3.forward + Vector3.right);
 
         Vector3 rotationResult;
 
         // Ease rotation
-        if (playerVelocity.magnitude < 0.1f)
+        if (_playerVelocity.magnitude < 0.1f)
         {
             rotationResult = characterController.transform.position + relativeDirection;
         }
         else
         {
+            Transform characterControllerTransform = characterController.transform;
+            Vector3 characterControllerPosition = characterControllerTransform.position;
             rotationResult = Vector3.Lerp(
-                characterController.transform.position + relativeDirection,
-                characterController.transform.position + characterController.transform.forward,
-                rotationSpeed * playerVelocity.normalized.magnitude
+                characterControllerPosition + relativeDirection,
+                characterControllerPosition + characterControllerTransform.forward,
+                rotationSpeed * _playerVelocity.normalized.magnitude
             );
         }
 
@@ -381,12 +400,12 @@ public class PlayerController : MonoBehaviour
         Vector3 forward = transform.TransformDirection(Vector3.forward);
 
         // Only move the player if you're not throwing an item
-        if (!throwItem)
+        if (!_throwItem)
             characterController.SimpleMove(forward * 
                 (
-                    playerDirection.magnitude * movmentSpeed * Time.fixedDeltaTime *
+                    _playerDirection.magnitude * movementSpeed * Time.fixedDeltaTime *
                     (1 + (dashMultiplier
-                          * (dashTimer / dashDuration)
+                          * (_dashTimer / dashDuration)
                           * Time.fixedDeltaTime))
                 )
             );
@@ -394,7 +413,7 @@ public class PlayerController : MonoBehaviour
 
     private void Dash()
     {
-        dashTimer = dashDuration;
+        _dashTimer = dashDuration;
     }
 
     /************************************************/
@@ -407,21 +426,20 @@ public class PlayerController : MonoBehaviour
 
         GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
 
-        if (closestInteractable)
+        if (!closestInteractable) return;
+        
+        switch (closestInteractable.tag)
         {
-            switch (closestInteractable.tag)
+            case "Register":
             {
-                case "Register":
-                    {
-                        interact_Register = closestInteractable.GetComponent<CashRegister>();
+                _interactRegister = closestInteractable.GetComponent<CashRegister>();
 
-                        currentPlayerMode = PlayerMode.Cashier;
+                _currentPlayerMode = PlayerMode.Cashier;
 
-                        transform.position = interact_Register.GetStandingPosition().position;
-                        transform.rotation = interact_Register.GetStandingPosition().rotation;
+                transform.position = _interactRegister.GetStandingPosition().position;
+                transform.rotation = _interactRegister.GetStandingPosition().rotation;
 
-                        break;
-                    }
+                break;
             }
         }
 
@@ -430,71 +448,70 @@ public class PlayerController : MonoBehaviour
     private void PickupObject()
     {
         string[] tagsToScan = { "Product", "StockCrate", "Shelf" };
-        GameObject[] excludedGameObjects = { gameObject, equippedItem };
+        GameObject[] excludedGameObjects = { gameObject, _equippedItem };
 
         GameObject closestInteractable = EssentialFunctions.GetClosestInteractableInFOV(transform, pickupArea, pickupAngle, maxPickupDistance, tagsToScan, excludedGameObjects);
 
         Vector3 org = EssentialFunctions.GetMaxBounds(gameObject).center;
 
-        if (closestInteractable)
+        if (!closestInteractable) return;
+        
+        Vector3 tar = EssentialFunctions.GetMaxBounds(closestInteractable).center;
+
+        Vector3 dirToInteractable = org - tar;
+
+        Debug.DrawRay(org, dirToInteractable, Color.red, 1.0f);
+
+        if (Physics.Raycast(org, dirToInteractable, out RaycastHit hit, 5.0f) && hit.transform.root != closestInteractable.transform) return;
+
+        //Debug.Log(hit.transform);
+
+        Debug.DrawLine(EssentialFunctions.GetMaxBounds(gameObject).center, EssentialFunctions.GetMaxBounds(closestInteractable).center, Color.red);
+
+        switch (closestInteractable.tag)
         {
-            Vector3 tar = EssentialFunctions.GetMaxBounds(closestInteractable).center;
-
-            Vector3 dirToInteractable = org - tar;
-
-            Debug.DrawRay(org, dirToInteractable, Color.red, 1.0f);
-
-            if (Physics.Raycast(org, dirToInteractable, out RaycastHit hit, 5.0f) && hit.transform.root != closestInteractable.transform) return;
-
-            //Debug.Log(hit.transform);
-
-            Debug.DrawLine(EssentialFunctions.GetMaxBounds(gameObject).center, EssentialFunctions.GetMaxBounds(closestInteractable).center, Color.red);
-
-            switch (closestInteractable.tag)
+            case "Product":
             {
-                case "Product":
-                    {
-                        // Fill equip slot
-                        EquipItem(closestInteractable.transform);
+                // Fill equip slot
+                EquipItem(closestInteractable.transform);
 
-                        break;
-                    }
-                case "StockCrate":
-                    {
-                        EquipItem(closestInteractable.transform);
-
-                        break;
-                    }
-                case "Shelf":
-                    {
-                        ShelfContainer shelfComponent = closestInteractable.GetComponent<ShelfContainer>();
-                        if (shelfComponent)
-                        {
-                            if (equippedItem)
-                            {
-                                AddStockToShelf(shelfComponent);
-                            }
-                            else
-                            {
-                                GetStockFromShelf(shelfComponent);
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogError("Shelf \"" + shelfComponent.gameObject + "\" is missing a ShelfContainer component or wrongly tagged!");
-                        }
-                        break;
-                    }
+                break;
             }
+            case "StockCrate":
+            {
+                EquipItem(closestInteractable.transform);
 
-            justPickedUp = true;
+                break;
+            }
+            case "Shelf":
+            {
+                ShelfContainer shelfComponent = closestInteractable.GetComponent<ShelfContainer>();
+                if (shelfComponent)
+                {
+                    if (_equippedItem)
+                    {
+                        AddStockToShelf(shelfComponent);
+                    }
+                    else
+                    {
+                        GetStockFromShelf(shelfComponent);
+                    }
+                }
+                else
+                {
+                    Debug.LogError("Shelf \"" + shelfComponent.gameObject + "\" is missing a ShelfContainer component or wrongly tagged!");
+                }
+                break;
+            }
         }
+
+        _justPickedUp = true;
     }
 
 
 
     // ////////////////////////////////////////
-    // Shelf Interation ///////////////////////
+    // Shelf Interaction ///////////////////////
     // ////////////////////////////////////////
 
     private void GetStockFromShelf(ShelfContainer shelf)
@@ -503,33 +520,32 @@ public class PlayerController : MonoBehaviour
         StockTypes stockType = shelf.ShelfStockType;
         int amount = shelf.GetStock();
 
-        if (amount != 0)
-        {
-            GameObject newItem = Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
-            EquipItem(newItem.transform);
-        }
+        if (amount == 0) return;
+        
+        GameObject newItem = Instantiate(_mapManager.GetStockTypePrefab(stockType)) as GameObject;
+        EquipItem(newItem.transform);
     }
 
     private void AddStockToShelf(ShelfContainer shelf)
     {
         // Check if there is something equipped
-        if (!equippedItem) return;
+        if (!_equippedItem) return;
 
         int result = 0;
 
-        switch (equippedItem.tag)
+        switch (_equippedItem.tag)
         {
             case "Product":
                 {
                     // Get stock type that is equipped
-                    StockTypes equippedType = equippedItem.GetComponent<StockItem>().GetStockType();
+                    StockTypes equippedType = _equippedItem.GetComponent<StockItem>().GetStockType();
 
                     result = shelf.AddStock(equippedType);
                     break;
                 }
             case "StockCrate":
                 {
-                    StockCrate crateComponent = equippedItem.GetComponent<StockCrate>();
+                    StockCrate crateComponent = _equippedItem.GetComponent<StockCrate>();
                     if (crateComponent)
                     {
                         result = shelf.AddCrate(crateComponent);
@@ -540,20 +556,20 @@ public class PlayerController : MonoBehaviour
 
         if (result == 0)
         {
-            Destroy(equippedItem);
+            Destroy(_equippedItem);
         }
     }
 
     // ////////////////////////////////////////
-    // Stock Interation ///////////////////////
+    // Stock Interaction ///////////////////////
     // ////////////////////////////////////////
 
     private void ThrowItem()
     {
-        if (!equippedItem) return;
+        if (!_equippedItem) return;
 
         // Remember item to throw
-        GameObject itemToThrow = equippedItem;
+        GameObject itemToThrow = _equippedItem;
 
         // Unequip item from player
         UnequipItem();
@@ -565,30 +581,30 @@ public class PlayerController : MonoBehaviour
     private void EquipItem(Transform item)
     {
         // Get game object
-        equippedItem = item.gameObject;
+        _equippedItem = item.gameObject;
 
         // Get rigidbody from item and disable physics
-        Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
-        productRB.isKinematic = true;
+        Rigidbody productRb = _equippedItem.GetComponent<Rigidbody>();
+        productRb.isKinematic = true;
 
         // Attach item to player hold position
-        equippedItem.transform.SetParent(equippedPosition);
-        equippedItem.transform.localPosition = Vector3.zero;
+        _equippedItem.transform.SetParent(equippedPosition);
+        _equippedItem.transform.localPosition = Vector3.zero;
     }
 
     private GameObject UnequipItem()
     {
-        if (!equippedItem) return null;
+        if (!_equippedItem) return null;
 
-        GameObject wasHolding = equippedItem;
+        GameObject wasHolding = _equippedItem;
 
         // Get rigidbody on item and enable physics
-        Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
-        productRB.isKinematic = false;
+        Rigidbody productRb = _equippedItem.GetComponent<Rigidbody>();
+        productRb.isKinematic = false;
 
         // De-attach item from player and remove item from equip slot
-        equippedItem.transform.SetParent(null);
-        equippedItem = null;
+        _equippedItem.transform.SetParent(null);
+        _equippedItem = null;
 
         return wasHolding;
     }

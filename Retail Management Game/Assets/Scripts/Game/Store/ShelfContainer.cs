@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using System;
+using System.Linq;
+using UnityEngine.Serialization;
 
 public class ShelfContainer : MonoBehaviour
 {
@@ -14,36 +16,42 @@ public class ShelfContainer : MonoBehaviour
     [SerializeField] private float playerDetectionDistance = 1.0f;
     [SerializeField] private Bounds boundsOfShelf;
 
+    [FormerlySerializedAs("allowPickup_F")]
     [Header("Pickup Faces")]
 
     [Rename("Front")]
-    [SerializeField] private bool allowPickup_F = true;
+    [SerializeField] private bool allowPickupF = true;
 
+    [FormerlySerializedAs("allowPickup_B")]
     [Rename("Back")]
-    [SerializeField] private bool allowPickup_B = false;
+    [SerializeField] private bool allowPickupB = false;
 
+    [FormerlySerializedAs("allowPickup_L")]
     [Rename("Left")]
-    [SerializeField] private bool allowPickup_L = false;
+    [SerializeField] private bool allowPickupL = false;
 
+    [FormerlySerializedAs("allowPickup_R")]
     [Rename("Right")]
-    [SerializeField] private bool allowPickup_R = false;
+    [SerializeField] private bool allowPickupR = false;
 
-    const float collisionSensitivity = 2.0f;
+    private const float COLLISION_SENSITIVITY = 2.0f;
 
     [Header("References")]
-    [SerializeField] TextMeshProUGUI stockNumIndicator = null;
-    [SerializeField] Animator billboardAnimator = null;
-    [SerializeField] ShelfVisual shelfVisual = null;
-    [SerializeField] GameObject stockToaster = null;
-    
-    Vector3[] pickupPositions = null;
-    int previousStockAmount = 0;
+    [SerializeField]
+    private TextMeshProUGUI stockNumIndicator = null;
+    [SerializeField] private Animator billboardAnimator = null;
+    [SerializeField] private ShelfVisual shelfVisual = null;
+    [SerializeField] private GameObject stockToaster = null;
 
-    List<ShelfContainer> adjacentShelves = new List<ShelfContainer>();
+    private Vector3[] _pickupPositions = null;
+    private int _previousStockAmount = 0;
 
-    MapManager mapManager;
+    private List<ShelfContainer> _adjacentShelves = new List<ShelfContainer>();
 
-    Bounds shelfBounds;
+    private MapManager _mapManager;
+
+    private Bounds _shelfBounds;
+    private static readonly int showNum = Animator.StringToHash("ShowNum");
 
     private void OnDrawGizmosSelected()
     {
@@ -51,22 +59,22 @@ public class ShelfContainer : MonoBehaviour
 
         boundsOfShelf = GetShelfBounds();
 
-        if (allowPickup_F)
+        if (allowPickupF)
         {
             Gizmos.DrawCube(boundsOfShelf.center + (transform.forward * 0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
-        if (allowPickup_B)
+        if (allowPickupB)
         {
             Gizmos.DrawCube(boundsOfShelf.center + (transform.forward * -0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
-        if (allowPickup_L)
+        if (allowPickupL)
         {
             Gizmos.DrawCube(boundsOfShelf.center + (transform.right * -0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
 
-        if (allowPickup_R)
+        if (allowPickupR)
         {
             Gizmos.DrawCube(boundsOfShelf.center + (transform.right * 0.5f), new Vector3(0.1f, boundsOfShelf.size.y, 0.1f));
         }
@@ -89,9 +97,9 @@ public class ShelfContainer : MonoBehaviour
     private void OnValidate()
     {
         // Always have at least one face available for pickup
-        if (!allowPickup_F && !allowPickup_B && !allowPickup_L && !allowPickup_R)
+        if (!allowPickupF && !allowPickupB && !allowPickupL && !allowPickupR)
         {
-            allowPickup_F = true;
+            allowPickupF = true;
         }
 
         stockAmount = Mathf.Clamp(stockAmount, 0, shelfSize);
@@ -99,8 +107,8 @@ public class ShelfContainer : MonoBehaviour
         UpdatePickupPositionsArray();
         
 
-        adjacentShelves.Clear();
-        adjacentShelves.AddRange(GetAdjacentShelves());
+        _adjacentShelves.Clear();
+        _adjacentShelves.AddRange(GetAdjacentShelves());
 
         // Update Stock
         ShelfVisual[] c = transform.GetComponentsInChildren<ShelfVisual>();
@@ -128,11 +136,10 @@ public class ShelfContainer : MonoBehaviour
             // Setup Visuals
             UnityEditor.EditorApplication.delayCall += () =>
             {
-                newStockVisual = Instantiate(stock.GetStockVisual());
+                newStockVisual = Instantiate(stock.GetStockVisual(), transform, true);
 
                 shelfVisual = newStockVisual.GetComponent<ShelfVisual>();
 
-                newStockVisual.transform.parent = transform;
                 newStockVisual.transform.localPosition = Vector3.zero;
             };
         }
@@ -151,7 +158,7 @@ public class ShelfContainer : MonoBehaviour
         //Debug.Log(collision.relativeVelocity.magnitude);
 
         // Add products to the shelf if it hits it hard enough
-        if (collision.relativeVelocity.magnitude < collisionSensitivity) return;
+        if (collision.relativeVelocity.magnitude < COLLISION_SENSITIVITY) return;
 
         StockItem stockItem = other.GetComponent<StockItem>();
         int result = 0;
@@ -202,16 +209,16 @@ public class ShelfContainer : MonoBehaviour
                 stockItem.UnclaimItem(gameObject);
 
                 // Get the damn item out of this shelf
-                if (allowPickup_F)
+                if (allowPickupF)
                 {
                     other.transform.position = boundsOfShelf.center + (transform.forward * 0.5f);
                 }
-                else if (allowPickup_B)
+                else if (allowPickupB)
                 {
                     other.transform.position = boundsOfShelf.center + (transform.forward * -0.5f);
                 }
 
-                else if (allowPickup_L)
+                else if (allowPickupL)
                 {
                     other.transform.position = boundsOfShelf.center + (transform.forward * -0.5f);
                 }
@@ -226,21 +233,21 @@ public class ShelfContainer : MonoBehaviour
     #endregion
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         UpdatePickupPositionsArray();
 
         // Get MapManager
-        mapManager = MapManager.GetInstance();
+        _mapManager = MapManager.GetInstance();
 
         boundsOfShelf = GetShelfBounds();
 
-        adjacentShelves.Clear();
-        adjacentShelves.AddRange(GetAdjacentShelves());
+        _adjacentShelves.Clear();
+        _adjacentShelves.AddRange(GetAdjacentShelves());
 
-        shelfBounds = EssentialFunctions.GetMaxBounds(gameObject);
+        _shelfBounds = EssentialFunctions.GetMaxBounds(gameObject);
 
-        previousStockAmount = stockAmount;
+        _previousStockAmount = stockAmount;
 
         UpdateStockBillboard();
         UpdateVisuals();
@@ -251,7 +258,7 @@ public class ShelfContainer : MonoBehaviour
     private void Update()
     {
         // Update text when stock changes
-        if (stockAmount != previousStockAmount)
+        if (stockAmount != _previousStockAmount)
         {
             UpdateStockBillboard();
             UpdateVisuals();
@@ -260,14 +267,14 @@ public class ShelfContainer : MonoBehaviour
         // Show billboard when player is near by or when low in stock
         if (stockAmount <= 2)
         { 
-            billboardAnimator.SetBool("ShowNum", true);
+            billboardAnimator.SetBool(showNum, true);
         }
         else
         {
-            billboardAnimator.SetBool("ShowNum", IsPlayerInDetectionBox());
+            billboardAnimator.SetBool(showNum, IsPlayerInDetectionBox());
         }
         
-        previousStockAmount = stockAmount;
+        _previousStockAmount = stockAmount;
     }
 
     #region Getters and Setters
@@ -364,13 +371,13 @@ public class ShelfContainer : MonoBehaviour
         if (remainingStock < 0) 
             remainingStock = 0;
 
-        mapManager.UpdateAvailableStockTypes();
+        _mapManager.UpdateAvailableStockTypes();
 
         // Add to adjacent shelves
         if (remainingStock > 0)
         {
             // No shelves adjacent - just return the remaining stock
-            if (adjacentShelves.Count == 0) 
+            if (_adjacentShelves.Count == 0) 
                 return remainingStock;
 
             // All adjacent shelves are full - return the remaining stock
@@ -453,7 +460,7 @@ public class ShelfContainer : MonoBehaviour
 
     #region Helpers
 
-    void EmptyShelf()
+    private void EmptyShelf()
     {
         stockAmount = 0;
         ShelfStockType = StockTypes.None;
@@ -462,32 +469,32 @@ public class ShelfContainer : MonoBehaviour
     /// <summary>
     /// Update pickup positions
     /// </summary>
-    void UpdatePickupPositionsArray()
+    private void UpdatePickupPositionsArray()
     {
         List<Vector3> foundPositions = new List<Vector3>();
 
-        if (allowPickup_F)
+        if (allowPickupF)
         {
             foundPositions.Add(transform.position + transform.forward);
         }
 
-        if (allowPickup_B)
+        if (allowPickupB)
         {
             foundPositions.Add(transform.position + -transform.forward);
         }
 
-        if (allowPickup_L)
+        if (allowPickupL)
         {
             foundPositions.Add(transform.position + -transform.right);
         }
 
-        if (allowPickup_R)
+        if (allowPickupR)
         {
             foundPositions.Add(transform.position + transform.right);
         }
 
-        pickupPositions = null;
-        pickupPositions = foundPositions.ToArray();
+        _pickupPositions = null;
+        _pickupPositions = foundPositions.ToArray();
     }
 
     /// <summary>
@@ -496,7 +503,7 @@ public class ShelfContainer : MonoBehaviour
     /// <returns></returns>
     public Vector3[] GetPickupPositions()
     {
-        return pickupPositions;
+        return _pickupPositions;
     }
 
     public bool IsEmpty()
@@ -509,33 +516,33 @@ public class ShelfContainer : MonoBehaviour
         return stockAmount >= shelfSize;
     }
 
-    bool IsAllAdjacentShelvesFull()
+    private bool IsAllAdjacentShelvesFull()
     {
         bool isAllFull = true;
 
-        for (int i = 0; i < adjacentShelves.Count; i++)
+        for (int i = 0; i < _adjacentShelves.Count; i++)
         {
-            if (!adjacentShelves[i].IsFull())
+            if (!_adjacentShelves[i].IsFull())
                 isAllFull = false;
         }
 
         return isAllFull;
     }
 
-    ShelfContainer[] GetAdjacentShelvesWithSpace()
+    private ShelfContainer[] GetAdjacentShelvesWithSpace()
     {
         List<ShelfContainer> shelvesWithSpace = new List<ShelfContainer>(GetAllAdjacentShelves());
 
-        for (int i = 0; i < adjacentShelves.Count; i++)
+        for (int i = 0; i < _adjacentShelves.Count; i++)
         {
-            if (!adjacentShelves[i].IsFull())
-                shelvesWithSpace.Add(adjacentShelves[i]);
+            if (!_adjacentShelves[i].IsFull())
+                shelvesWithSpace.Add(_adjacentShelves[i]);
         }
 
         return shelvesWithSpace.ToArray();
     }
 
-    void UpdateStockBillboard()
+    private void UpdateStockBillboard()
     {
         if (stockAmount <= 2)
         {
@@ -549,38 +556,43 @@ public class ShelfContainer : MonoBehaviour
         stockNumIndicator.SetText(stockAmount.ToString());
     }
 
-    ShelfContainer[] GetAdjacentShelves()
+    private ShelfContainer[] GetAdjacentShelves()
     {
         //adjacentShelves.Clear();
-        List<ShelfContainer> foundShelves = new List<ShelfContainer>();
 
-        Collider[] adjacentObjects = Physics.OverlapBox(transform.position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(1.1f, 1.0f, 1.1f));
+        Collider[] adjacentObjects = { };
+        Physics.OverlapBoxNonAlloc(transform.position +
+                                   new Vector3(0.0f,
+                                       1.0f,
+                                       0.0f),
+            new Vector3(1.1f,
+                1.0f,
+                1.1f),
+            adjacentObjects);
 
-        foreach (Collider adjacentObject in adjacentObjects)
-        {
-            if (adjacentObject.CompareTag("Shelf"))
-            {
-                ShelfContainer shelfContainer = adjacentObject.GetComponent<ShelfContainer>();
-                if (shelfContainer != this && shelfContainer.shelfStockType == shelfStockType)
-                    foundShelves.Add(adjacentObject.GetComponent<ShelfContainer>());
-            }
-        }
-
-        return foundShelves.ToArray();
+        return (from adjacentObject in adjacentObjects
+            where adjacentObject.CompareTag("Shelf")
+            let shelfContainer = adjacentObject.GetComponent<ShelfContainer>()
+            where shelfContainer != this && shelfContainer.shelfStockType == shelfStockType
+            select adjacentObject.GetComponent<ShelfContainer>()).ToArray();
     }
 
     #endregion
 
-    bool IsPlayerInDetectionBox()
+    private bool IsPlayerInDetectionBox()
     {
-        Collider[] characters = Physics.OverlapBox(
-                shelfBounds.center,
-                shelfBounds.size + new Vector3(playerDetectionDistance, 0.0f, playerDetectionDistance) * 0.5f, 
-                transform.rotation, 
-                LayerMask.GetMask("Character")
-            );
+        Collider[] characters = { };
+        int charactersLength = Physics.OverlapBoxNonAlloc(_shelfBounds.center,
+            _shelfBounds.size +
+            new Vector3(playerDetectionDistance,
+                0.0f,
+                playerDetectionDistance) *
+            0.5f,
+            characters,
+            transform.rotation,
+            LayerMask.GetMask("Character"));
 
-        for (int i = 0; i < characters.Length; i++)
+        for (int i = 0; i < charactersLength; i++)
         {
             if (characters[i].transform.root.CompareTag("Player"))
             {
@@ -592,7 +604,7 @@ public class ShelfContainer : MonoBehaviour
         return false;
     }
 
-    ShelfContainer[] GetAllAdjacentShelves()
+    private ShelfContainer[] GetAllAdjacentShelves()
     {
         List<ShelfContainer> allAdjShelves = new List<ShelfContainer>();
 
@@ -600,41 +612,41 @@ public class ShelfContainer : MonoBehaviour
 
         void CollectShelves(ShelfContainer shelfContainer, ref List<ShelfContainer> collectedShelves)
         {
-            shelfContainer.adjacentShelves.Clear();
-            shelfContainer.adjacentShelves.AddRange(shelfContainer.GetAdjacentShelves());
+            shelfContainer._adjacentShelves.Clear();
+            shelfContainer._adjacentShelves.AddRange(shelfContainer.GetAdjacentShelves());
 
-            if (shelfContainer.adjacentShelves.Count > 0)
+            if (shelfContainer._adjacentShelves.Count <= 0) return;
+            
+            for (int i = 0; i < shelfContainer._adjacentShelves.Count; i++)
             {
-                for (int i = 0; i < shelfContainer.adjacentShelves.Count; i++)
-                {
-                    if (collectedShelves.Contains(shelfContainer.adjacentShelves[i])) continue;
+                if (collectedShelves.Contains(shelfContainer._adjacentShelves[i])) continue;
 
-                    collectedShelves.Add(shelfContainer.adjacentShelves[i]);
+                collectedShelves.Add(shelfContainer._adjacentShelves[i]);
 
-                    CollectShelves(shelfContainer.adjacentShelves[i], ref collectedShelves);
-                }
+                CollectShelves(shelfContainer._adjacentShelves[i], ref collectedShelves);
             }
         }
 
         return allAdjShelves.ToArray();
     }
 
-    void UpdateVisuals()
+    private void UpdateVisuals()
     {
         if (shelfVisual)
             shelfVisual.StockAmountPercentage = (float)stockAmount / shelfSize;
         else
         {
-            ShelfVisual sv = GetComponentInChildren<ShelfVisual>();
-            if (sv)
-            {
-                shelfVisual = sv;
-                UpdateVisuals();
-            }
+            ShelfVisual _shelfVisual = GetComponentInChildren<ShelfVisual>();
+            
+            if (!_shelfVisual) return;
+            
+            shelfVisual = _shelfVisual;
+            
+            UpdateVisuals();
         }
     }
 
-    void PushStockToaster(int amount)
+    private void PushStockToaster(int amount)
     {
         GameObject newToaster = Instantiate(stockToaster) as GameObject;
 

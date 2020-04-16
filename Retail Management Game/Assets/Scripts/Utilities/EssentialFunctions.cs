@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Where I keep all of my random yet useful functions
@@ -196,10 +198,7 @@ public static class EssentialFunctions
 
     public static T GetRandomFromArray<T>(T[] array)
     {
-        if (array.Length == 1)
-            return array[0];
-        else
-            return array[Random.Range(0, array.Length)];
+        return array.Length == 1 ? array[0] : array[Random.Range(0, array.Length)];
     }
 
     public static float GetCurrentAnimationClipPosition(Animator animator)
@@ -244,5 +243,33 @@ public static class EssentialFunctions
         Debug.DrawRay(transformToTurn.position, transformToTurn.forward * 5.0f, Color.red);
 
         return Vector3.Angle(transformToTurn.forward, targetRot);
+    }
+
+    //*************************************************************************
+    // GetRandomPositionIn___
+    
+    /*
+     * Get random position in areas
+     */
+    
+    public static Vector3 GetRandomPositionInTransform(Transform t)
+    {
+        return GetRandomPositionInZone(t.position, t.localScale);
+    }
+
+    public static Vector3 GetRandomPositionInBounds(Bounds b)
+    {
+        return GetRandomPositionInZone(b.center, b.size);
+    }
+    
+    public static Vector3 GetRandomPositionInZone(Vector3 center, Vector3 size)
+    {
+        Vector3 sizeHalf = size * 0.5f;
+
+        float xPos = center.x + Random.Range(-sizeHalf.x, sizeHalf.x);
+        float yPos = center.y + Random.Range(-sizeHalf.y, sizeHalf.y);
+        float zPos = center.z + Random.Range(-sizeHalf.z, sizeHalf.z);
+        
+        return new Vector3(xPos, yPos, zPos);
     }
 }

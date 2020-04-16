@@ -1,7 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 public enum GameState
 {
@@ -17,15 +19,15 @@ public class GameManager : MonoBehaviour
     //************************************************************************/
     //* Instance Management
 
-    private static GameManager instance;
+    private static GameManager _instance;
 
     private void Awake()
     {
-        if (instance)
+        if (_instance)
         {
             Debug.LogError("Two game instances exists in the game at once! This shouldn't be possible! WTF?!?! \n" +
                 "Instance 1: " + this + "\n" +
-                "Instance 2: " + instance
+                "Instance 2: " + _instance
             );
 
             Debug.LogAssertion("Quitting game so you can fix the mess you've made...");
@@ -33,12 +35,12 @@ public class GameManager : MonoBehaviour
             Application.Quit();
         }
         else
-            instance = this;
+            _instance = this;
     }
 
     public static GameManager GetInstance()
     {
-        return instance;
+        return _instance;
     }
 
     //************************************************************************/
@@ -46,70 +48,73 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Score")]
 
-    [SerializeField] int profit = 0;
-    [SerializeField] int lostCustomers = 0;
+    [SerializeField]
+    private int profit = 0;
+    [SerializeField] private int lostCustomers = 0;
 
     [Header("Game Settings")]
     public float despawnHeight = -10.0f;
 
-    [SerializeField] float levelDuration = 120.0f;
+    [SerializeField] private float levelDuration = 120.0f;
 
-    [SerializeField] float maxLostCustomers = 3;
+    [SerializeField] private float maxLostCustomers = 3;
 
-    [SerializeField] float readyDuration = 5.0f;
-    [SerializeField] int secondsCountDown = 3;
+    [SerializeField] private float readyDuration = 5.0f;
+    [SerializeField] private int secondsCountDown = 3;
 
     [Header("Customer Settings")]
-    [SerializeField] AnimationCurve customerFrequency = new AnimationCurve(
+    [SerializeField]
+    private AnimationCurve customerFrequency = new AnimationCurve(
         new Keyframe(0.0f, 10.0f, 0.0f, 0.0f),
         new Keyframe(120.0f, 5.0f, 0.0f, 0.0f));
-    [SerializeField] CustomerTypePack[] customersToSpawn = null;
+    [SerializeField] private CustomerTypePack[] customersToSpawn = null;
 
     [Header("Truck Settings")]
-    [SerializeField] float truckSpawnFrequency = 30.0f;
+    [SerializeField] private float truckSpawnFrequency = 30.0f;
 
-    [Tooltip("Determind if the delivery order list will be sent in order or not.")]
-    [SerializeField] bool isDeliverInSequence = true;
-    [SerializeField] TruckDeliveryPack[] truckDeliveryOrder = System.Array.Empty<TruckDeliveryPack>();
+    [Tooltip("Determine if the delivery order list will be sent in order or not.")]
+    [SerializeField] private bool isDeliverInSequence = true;
+    [SerializeField] private TruckDeliveryPack[] truckDeliveryOrder = System.Array.Empty<TruckDeliveryPack>();
 
     [Header("Win State Settings")]
-    [SerializeField] string[] randomWinMessages = new string[] { "Ayyy you did it!" };
+    [SerializeField] private string[] randomWinMessages = new string[] { "Ayyy you did it!" };
 
     [Header("Lost State Settings")]
-    [SerializeField] string[] randomLostMessages = new string[] { "Really?" };
+    [SerializeField] private string[] randomLostMessages = new string[] { "Really?" };
 
     [Header("Game Over Settings")]
-    [SerializeField] float endSlowDownDuration = 5.0f;
+    [SerializeField] private float endSlowDownDuration = 5.0f;
 
     [Header("References")]
-    [SerializeField] string latestLostReason = "You're actually bad";
+    [SerializeField] private string latestLostReason = "You're actually bad";
 
-    [SerializeField] HUD HUDScript = null;
-    [SerializeField] List<Transform> players = new List<Transform>();
-    [SerializeField] List<Transform> customersInLevel = new List<Transform>();
+    [SerializeField] private HUD hudScript = null;
+    [SerializeField] private List<Transform> players = new List<Transform>();
+    [SerializeField] private List<Transform> customersInLevel = new List<Transform>();
 
     //************************************************************************/
     // Runtime Variables
 
-    MapManager mapManager = null;
+    private MapManager _mapManager = null;
 
-    GameState currrentGameState = GameState.Starting;
+    private GameState _currentGameState = GameState.Starting;
 
-    int currentDeliveryPackIndex = 0;
+    private int _currentDeliveryPackIndex = 0;
 
-    TruckDriver currentTruckDriver = null;
+    private TruckDriver _currentTruckDriver = null;
 
-    GameState previousGameState = GameState.Starting;
+    private GameState _previousGameState = GameState.Starting;
 
     // Timers
-    float startCountDownTimer = 0.0f;
-    float truckTimer = 0.0f;
-    float customerSpawnTimer = 0.0f;
-    float gameDuration = 0.0f;
+    private float _startCountDownTimer = 0.0f;
+    private float _truckTimer = 0.0f;
+    private float _customerSpawnTimer = 0.0f;
+    private float _gameDuration = 0.0f;
+    private static readonly int enter = Animator.StringToHash("Enter");
 
     private void OnValidate()
     {
-        if (levelDuration == 0.0f) return;
+        if (levelDuration <= 0.0f) return;
 
         List<Keyframe> newKeyframes = new List<Keyframe>();
 
@@ -146,57 +151,57 @@ public class GameManager : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        mapManager = MapManager.GetInstance();
+        _mapManager = MapManager.GetInstance();
 
-        currentDeliveryPackIndex = 0;
+        _currentDeliveryPackIndex = 0;
 
-        gameDuration = levelDuration;
+        _gameDuration = levelDuration;
 
-        HUDScript.UpdateTimer(gameDuration);
-        HUDScript.UpdateCash(profit);
+        hudScript.UpdateTimer(_gameDuration);
+        hudScript.UpdateCash(profit);
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         // Wait until MapManager is done loading
-        if (!mapManager.isDoneLoading) return;
+        if (!_mapManager.isDoneLoading) return;
 
-        if (currrentGameState == GameState.Paused) return;
+        if (_currentGameState == GameState.Paused) return;
 
         // Count down
-        if (currrentGameState == GameState.Starting && gameDuration >= 0.0f)
-            if (startCountDownTimer >= (secondsCountDown + readyDuration))
+        if (_currentGameState == GameState.Starting && _gameDuration >= 0.0f)
+            if (_startCountDownTimer >= (secondsCountDown + readyDuration))
             {
-                currrentGameState = GameState.Running;
+                _currentGameState = GameState.Running;
                 Time.timeScale = 1.0f;
-                HUDScript.UpdateCountDown("");
+                hudScript.UpdateCountDown("");
             }
             else
             {
-                startCountDownTimer += Time.unscaledDeltaTime;
+                _startCountDownTimer += Time.unscaledDeltaTime;
 
-                float countDownReversed = (secondsCountDown - startCountDownTimer) + readyDuration;
+                float countDownReversed = (secondsCountDown - _startCountDownTimer) + readyDuration;
 
-                if (startCountDownTimer < readyDuration)
+                if (_startCountDownTimer < readyDuration)
                 {
-                    HUDScript.UpdateCountDown("Ready?");
+                    hudScript.UpdateCountDown("Ready?");
                 }
                 else
                 {
                     int countDownText = Mathf.CeilToInt(countDownReversed);
                     if (countDownText < 0) countDownText = 0;
 
-                    HUDScript.UpdateCountDown(countDownText.ToString());
+                    hudScript.UpdateCountDown(countDownText.ToString());
                 }
 
                 Time.timeScale = 0.0f;
             }
 
         // Game over!
-        else if ((currrentGameState != GameState.Running && gameDuration <= 0.0f) || currrentGameState == GameState.Lost)
+        else if ((_currentGameState != GameState.Running && _gameDuration <= 0.0f) || _currentGameState == GameState.Lost)
         {
             
         }
@@ -206,31 +211,31 @@ public class GameManager : MonoBehaviour
         {
             #region Timer Management
 
-            customerSpawnTimer += Time.deltaTime;
-            gameDuration -= Time.deltaTime;
+            _customerSpawnTimer += Time.deltaTime;
+            _gameDuration -= Time.deltaTime;
 
             #endregion
 
             #region Spawner Management
 
-            if (!currentTruckDriver || !currentTruckDriver.isSpawning)
+            if (!_currentTruckDriver || !_currentTruckDriver.isSpawning)
             {
-                truckTimer += Time.deltaTime;
+                _truckTimer += Time.deltaTime;
 
-                if (truckTimer >= truckSpawnFrequency)
+                if (_truckTimer >= truckSpawnFrequency)
                 {
                     SpawnTruck();
                     Debug.Log("Spawning truck!");
-                    truckTimer = 0.0f;
+                    _truckTimer = 0.0f;
                 }
             }
 
-            float currentCustomerSpawnFrequency = customerFrequency.Evaluate(gameDuration);
-            if (customerSpawnTimer >= currentCustomerSpawnFrequency)
+            float currentCustomerSpawnFrequency = customerFrequency.Evaluate(_gameDuration);
+            if (_customerSpawnTimer >= currentCustomerSpawnFrequency)
             {
                 SpawnCustomer();
                 //Debug.Log("Spawning customer! Current frequency:" + currentCustomerSpawnFrequency);
-                customerSpawnTimer = 0.0f;
+                _customerSpawnTimer = 0.0f;
             }
 
             #endregion
@@ -241,17 +246,17 @@ public class GameManager : MonoBehaviour
                 return;
             }
 
-            if (gameDuration <= 0.0f)
+            if (_gameDuration <= 0.0f)
             {
                 WinState();
                 return;
             }
 
-            HUDScript.UpdateTimer(gameDuration);
+            hudScript.UpdateTimer(_gameDuration);
         }
     }
 
-    void SpawnCustomer()
+    private void SpawnCustomer()
     {
         GameObject selected;
 
@@ -278,32 +283,32 @@ public class GameManager : MonoBehaviour
         }
         
         // Spawn selected customer
-        mapManager.GetRandomCustomerSpawner().SpawnCustomer(selected);
+        _mapManager.GetRandomCustomerSpawner().SpawnCustomer(selected);
     }
 
-    void SpawnTruck()
+    private void SpawnTruck()
     {
-        currentTruckDriver = mapManager.GetRandomTruck();
+        _currentTruckDriver = _mapManager.GetRandomTruck();
 
-        currentTruckDriver.ClearTruck();
+        _currentTruckDriver.ClearTruck();
 
         if (!isDeliverInSequence)
         {
-            currentDeliveryPackIndex = Random.Range(0, truckDeliveryOrder.Length);
+            _currentDeliveryPackIndex = Random.Range(0, truckDeliveryOrder.Length);
         }
 
-        LoadUpTruck(currentTruckDriver, truckDeliveryOrder[currentDeliveryPackIndex]);
+        LoadUpTruck(_currentTruckDriver, truckDeliveryOrder[_currentDeliveryPackIndex]);
 
         if (isDeliverInSequence)
         {
-            currentDeliveryPackIndex = (currentDeliveryPackIndex + 1) % truckDeliveryOrder.Length;
+            _currentDeliveryPackIndex = (_currentDeliveryPackIndex + 1) % truckDeliveryOrder.Length;
         }
 
         // Spawn truck
-        currentTruckDriver.GetAnimator().SetTrigger("Enter");
+        _currentTruckDriver.GetAnimator().SetTrigger(enter);
     }
 
-    void LoadUpTruck(TruckDriver truck, TruckDeliveryPack deliveryPack)
+    private void LoadUpTruck(TruckDriver truck, TruckDeliveryPack deliveryPack)
     {
         for (int p = 0; p < deliveryPack.deliveryPacks.Length; p++)
         {
@@ -324,6 +329,8 @@ public class GameManager : MonoBehaviour
                         truck.AddCrate(currentLoadIn.stockType, currentLoadIn.stockAmount);
                         break;
                     }
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
     }
@@ -344,11 +351,10 @@ public class GameManager : MonoBehaviour
     {
         for (int s = 0; s < players.Count; s++)
         {
-            if (players[s] == player)
-            {
-                players.RemoveAt(s);
-                return;
-            }
+            if (players[s] != player) continue;
+            
+            players.RemoveAt(s);
+            return;
         }
 
         // If it gets to here, it means that the targeted subject was not found
@@ -366,11 +372,10 @@ public class GameManager : MonoBehaviour
     {
         for (int c = 0; c < customersInLevel.Count; c++)
         {
-            if (customersInLevel[c] == customer)
-            {
-                customersInLevel.RemoveAt(c);
-                return;
-            }
+            if (customersInLevel[c] != customer) continue;
+            
+            customersInLevel.RemoveAt(c);
+            return;
         }
 
         // If it gets to here, it means that the targeted subject was not found
@@ -386,7 +391,7 @@ public class GameManager : MonoBehaviour
     {
         profit += amount;
 
-        HUDScript.UpdateCash(profit);
+        hudScript.UpdateCash(profit);
     }
 
     public int GetScore()
@@ -398,14 +403,14 @@ public class GameManager : MonoBehaviour
     {
         profit -= amount;
 
-        HUDScript.UpdateCash(profit);
+        hudScript.UpdateCash(profit);
     }
 
     public void LostCustomer()
     {
         lostCustomers++;
 
-        HUDScript.UpdateUpsetCustomers(lostCustomers);
+        hudScript.UpdateUpsetCustomers(lostCustomers);
     }
 
     public int GetLostCustomerAmount()
@@ -415,31 +420,31 @@ public class GameManager : MonoBehaviour
 
     public void PauseGame()
     {
-        if (currrentGameState != GameState.Running && currrentGameState != GameState.Starting) return;
+        if (_currentGameState != GameState.Running && _currentGameState != GameState.Starting) return;
         // Save previous game state
-        previousGameState = currrentGameState;
+        _previousGameState = _currentGameState;
 
         // Set up pause state
         StartCoroutine(SetSlowDown(0.5f));
-        HUDScript.GetPauseMenu().SetActive(true);
+        hudScript.GetPauseMenu().SetActive(true);
 
         // Change state
-        currrentGameState = GameState.Paused;
+        _currentGameState = GameState.Paused;
     }
 
     public void ResumeGame()
     {
         // Set up resume game
         Time.timeScale = 1.0f;
-        HUDScript.GetPauseMenu().SetActive(false);
+        hudScript.GetPauseMenu().SetActive(false);
 
         // Restore previous game state
-        currrentGameState = previousGameState;
+        _currentGameState = _previousGameState;
     }
 
     public GameState GetGameState()
     {
-        return currrentGameState;
+        return _currentGameState;
     }
 
     public void ForceLoseReasonMessage(string lostReason)
@@ -449,9 +454,9 @@ public class GameManager : MonoBehaviour
 
     public void LostState(string lostReason)
     {
-        currrentGameState = GameState.Lost;
+        _currentGameState = GameState.Lost;
 
-        HUDScript.SetGameOver(lostReason);
+        hudScript.SetGameOver(lostReason);
         StartCoroutine(SetSlowDown(endSlowDownDuration));
     }
 
@@ -462,10 +467,10 @@ public class GameManager : MonoBehaviour
 
     public bool IsGameOver()
     {
-        return currrentGameState == GameState.Lost || currrentGameState == GameState.Won;
+        return _currentGameState == GameState.Lost || _currentGameState == GameState.Won;
     }
 
-    IEnumerator SetSlowDown(float slowDownDuration)
+    private IEnumerator SetSlowDown(float slowDownDuration)
     {
         for (float t = slowDownDuration; t >= 0.0f; t -= Time.unscaledDeltaTime)
         {
@@ -481,23 +486,23 @@ public class GameManager : MonoBehaviour
         yield return null;
     }
 
+    public void WinState()
+    {
+        WinState(EssentialFunctions.GetRandomFromArray(randomWinMessages));
+    }
+    
     public void WinState(string winReason)
     {
-        currrentGameState = GameState.Won;
-        gameDuration = 0.0f;
+        _currentGameState = GameState.Won;
+        _gameDuration = 0.0f;
 
-        HUDScript.SetGameOver(winReason);
+        hudScript.SetGameOver(winReason);
 
         PlayerData.currentInfo.profit = profit;
         PlayerData.currentInfo.money = profit;
         PlayerData.SaveSlotData();
 
         StartCoroutine(SetSlowDown(endSlowDownDuration));
-    }
-
-    public void WinState()
-    {
-        WinState(EssentialFunctions.GetRandomFromArray(randomWinMessages));
     }
 
     public void ToScoreBoard()

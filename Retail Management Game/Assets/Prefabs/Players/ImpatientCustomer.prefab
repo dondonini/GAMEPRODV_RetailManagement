@@ -13,35 +13,65 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rotationSpeed: 1
-  pickupAngle: 90
   maxPickupDistance: 1
+  pickupAngle: 90
   pushPower: 2
   pickupDuration: 2
   purchaseDuration: 2
   queuingPatience: 15
   stockPatience: 10
-  stuckThreshold: 3
-  unstuckDuration: 3
   collisionSensitivity: 2
-  equippedPosition: {fileID: 4774372571447577644}
   pickupArea: {fileID: 2122117602631036033}
   colliderEvents: {fileID: 8254548147325502615}
   infoHalo: {fileID: 7032858258943448685}
-  patienceBillboard: {fileID: 2252473225214559118}
+  billboard: {fileID: 5498241066274071169}
+  billboardCanvas: {fileID: 2252473225214559118}
+  billboardAnimator: {fileID: 5686374693684633417}
   patienceAnimator: {fileID: 5556116529947117153}
   patienceText: {fileID: 5349092831114141893}
-  agent: {fileID: 0}
-  obstacle: {fileID: 682657536262960681}
-  currentWantedProduct: 0
-  currentStateAction: 
-  subStateMachineState: 
+  mapManager: {fileID: 0}
+  gameManager: {fileID: 0}
+  equippedPosition: {fileID: 4774372571447577644}
+  navMeshAgent: {fileID: 0}
   taskDestinationPosition: {x: 0, y: 0, z: 0}
   taskDestination: {fileID: 0}
+  currentWantedProduct: 0
   equippedItem: {fileID: 0}
   isActive: 0
   isGettingUnstuck: 0
-  mapManager: {fileID: 0}
-  gameManager: {fileID: 0}
+  internalDebugLog: 
+  currentTask: 0
+--- !u!95 &5686374693684633417
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5498241066274071169}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!225 &8077653908558945479
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8897008927030275766}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1001 &4657765086254677791
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -124,6 +154,11 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: aa34a14712a467746a1b964d8d1d0a2b, type: 2}
+    - target: {fileID: 4313096937448624553, guid: 07642354fc744894eaa41cbefc5f14be,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2752050984802553645, guid: 07642354fc744894eaa41cbefc5f14be,
         type: 3}
       propertyPath: m_Mesh
@@ -152,12 +187,6 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 4657765086254677791}
   m_PrefabAsset: {fileID: 0}
---- !u!208 &682657536262960681 stripped
-NavMeshObstacle:
-  m_CorrespondingSourceObject: {fileID: 5321844921863194934, guid: 07642354fc744894eaa41cbefc5f14be,
-    type: 3}
-  m_PrefabInstance: {fileID: 4657765086254677791}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &8254548147325502615 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3615756517231246216, guid: 07642354fc744894eaa41cbefc5f14be,
@@ -182,9 +211,21 @@ BoxCollider:
     type: 3}
   m_PrefabInstance: {fileID: 4657765086254677791}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5498241066274071169 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 931710439867686302, guid: 07642354fc744894eaa41cbefc5f14be,
+    type: 3}
+  m_PrefabInstance: {fileID: 4657765086254677791}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7032858258943448685 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2394243710307150194, guid: 07642354fc744894eaa41cbefc5f14be,
+    type: 3}
+  m_PrefabInstance: {fileID: 4657765086254677791}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8897008927030275766 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4313096937448624553, guid: 07642354fc744894eaa41cbefc5f14be,
     type: 3}
   m_PrefabInstance: {fileID: 4657765086254677791}
   m_PrefabAsset: {fileID: 0}

@@ -13,35 +13,65 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rotationSpeed: 1
-  pickupAngle: 90
   maxPickupDistance: 1
+  pickupAngle: 90
   pushPower: 2
   pickupDuration: 2
   purchaseDuration: 2
   queuingPatience: 20
   stockPatience: 20
-  stuckThreshold: 3
-  unstuckDuration: 3
   collisionSensitivity: 2
-  equippedPosition: {fileID: 3936268078414698539}
   pickupArea: {fileID: 7607374510378154118}
   colliderEvents: {fileID: 463764893471625360}
   infoHalo: {fileID: 1547038336816857706}
-  patienceBillboard: {fileID: 7756306927371442057}
+  billboard: {fileID: 4083702076606346886}
+  billboardCanvas: {fileID: 7756306927371442057}
+  billboardAnimator: {fileID: 8393704771747620796}
   patienceAnimator: {fileID: 4177896741513908838}
   patienceText: {fileID: 4529037852242867394}
-  agent: {fileID: 0}
-  obstacle: {fileID: 9050226516288086574}
-  currentWantedProduct: 0
-  currentStateAction: 
-  subStateMachineState: 
+  mapManager: {fileID: 0}
+  gameManager: {fileID: 0}
+  equippedPosition: {fileID: 3936268078414698539}
+  navMeshAgent: {fileID: 0}
   taskDestinationPosition: {x: 0, y: 0, z: 0}
   taskDestination: {fileID: 0}
+  currentWantedProduct: 0
   equippedItem: {fileID: 0}
   isActive: 0
   isGettingUnstuck: 0
-  mapManager: {fileID: 0}
-  gameManager: {fileID: 0}
+  internalDebugLog: 
+  currentTask: 0
+--- !u!95 &8393704771747620796
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4083702076606346886}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: d1b6acf6c4c671f43bbb8de3ae4ced51, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!225 &7160413706271912045
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1123949388297681585}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1001 &3765608331552713496
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -134,6 +164,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Eye
       objectReference: {fileID: 0}
+    - target: {fileID: 4313096937448624553, guid: 07642354fc744894eaa41cbefc5f14be,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8610626285128959437, guid: 07642354fc744894eaa41cbefc5f14be,
         type: 3}
       propertyPath: m_Name
@@ -154,12 +189,6 @@ PrefabInstance:
 --- !u!1 &151216958774418789 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3916754907984623229, guid: 07642354fc744894eaa41cbefc5f14be,
-    type: 3}
-  m_PrefabInstance: {fileID: 3765608331552713496}
-  m_PrefabAsset: {fileID: 0}
---- !u!208 &9050226516288086574 stripped
-NavMeshObstacle:
-  m_CorrespondingSourceObject: {fileID: 5321844921863194934, guid: 07642354fc744894eaa41cbefc5f14be,
     type: 3}
   m_PrefabInstance: {fileID: 3765608331552713496}
   m_PrefabAsset: {fileID: 0}
@@ -187,9 +216,21 @@ BoxCollider:
     type: 3}
   m_PrefabInstance: {fileID: 3765608331552713496}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4083702076606346886 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 931710439867686302, guid: 07642354fc744894eaa41cbefc5f14be,
+    type: 3}
+  m_PrefabInstance: {fileID: 3765608331552713496}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1547038336816857706 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2394243710307150194, guid: 07642354fc744894eaa41cbefc5f14be,
+    type: 3}
+  m_PrefabInstance: {fileID: 3765608331552713496}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1123949388297681585 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4313096937448624553, guid: 07642354fc744894eaa41cbefc5f14be,
     type: 3}
   m_PrefabInstance: {fileID: 3765608331552713496}
   m_PrefabAsset: {fileID: 0}

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 public abstract class Customer_AI : MonoBehaviour
 {
@@ -19,7 +20,7 @@ public abstract class Customer_AI : MonoBehaviour
     public float maxPickupDistance = 1.0f;
     [Range(45.0f, 180.0f)]
     [SerializeField] protected float pickupAngle = 90.0f;
-    [Tooltip("Push multiplyer when the character hits other rigidbodies.")]
+    [Tooltip("Push multiplier when the character hits other rigidbodies.")]
     [SerializeField] protected float pushPower = 2.0f;
 
     [Header("Waiting Durations")]
@@ -35,42 +36,45 @@ public abstract class Customer_AI : MonoBehaviour
     //************************************************************************
     [Header("References - UI")]
 
-    [SerializeField] protected BoxCollider pickupArea = null;
-    public ColliderToUnityEvents colliderEvents = null;
-    public Transform infoHalo = null;
-    public Canvas patienceBillboard = null;
-    public Animator patienceAnimator = null;
-    public TextMeshProUGUI patienceText = null;
+    [SerializeField] protected BoxCollider pickupArea;
+    public ColliderToUnityEvents colliderEvents;
+    public Transform infoHalo;
+    public GameObject billboard;
+    public Canvas billboardCanvas;
+    public Animator billboardAnimator;
+    public Animator patienceAnimator;
+    public TextMeshProUGUI patienceText;
 
     //*************************************************************************
     // Managers
 
-    [HideInInspector] public MapManager mapManager = null;
-    [HideInInspector] public GameManager gameManager = null;
+    [HideInInspector] public MapManager mapManager;
+    [HideInInspector] public GameManager gameManager;
 
     //************************************************************************
     // Runtime Variables
 
     public Transform equippedPosition;
 
-    [HideInInspector]
-    public NavMeshAgent agent = null;
+    [FormerlySerializedAs("agent")] [HideInInspector]
+    public NavMeshAgent navMeshAgent;
     public IBase_SM currentState;
     protected IBase_SM previousState;
     protected Vector3 previousPosition;
 
-    protected bool firstTime = false;
+    protected bool firstTime;
 
-    [HideInInspector] public StockTypes currentWantedProduct = StockTypes.None;
+    [HideInInspector] 
 
     //************************************************************************
     // Debug
     [Header("Debug")]
     [ReadOnly] public Vector3 taskDestinationPosition;
-    [ReadOnly] public Transform taskDestination = null;
-    [ReadOnly] public GameObject equippedItem = null;
-    [ReadOnly] [SerializeField] protected bool isActive = false;
-    [ReadOnly] public bool isGettingUnstuck = false;
+    [ReadOnly] public Transform taskDestination;
+    [ReadOnly] public StockTypes currentWantedProduct = StockTypes.None;
+    [ReadOnly] public GameObject equippedItem;
+    [ReadOnly] [SerializeField] protected bool isActive;
+    [ReadOnly] public bool isGettingUnstuck;
 
 #pragma warning disable IDE0052 // Remove unread private members
     [ReadOnly] [SerializeField] private string internalDebugLog = "";
@@ -80,7 +84,7 @@ public abstract class Customer_AI : MonoBehaviour
     //////////////////////////////////////////////////////////////////////////
 
     // Allows player to push rigidbody objects
-    void OnControllerColliderHit(ControllerColliderHit hit)
+    private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         Rigidbody body = hit.collider.attachedRigidbody;
 
@@ -108,23 +112,23 @@ public abstract class Customer_AI : MonoBehaviour
          */
 
         // Apply the push
-        body.velocity = pushDirection * (agent.velocity.magnitude * pushPower);
+        body.velocity = pushDirection * (navMeshAgent.velocity.magnitude * pushPower);
     }
 
     // Start is called before the first frame update
     protected virtual void Start()
     {
-        // Get MapManager
+        // Get Managers
         mapManager = MapManager.GetInstance();
         gameManager = GameManager.GetInstance();
 
         // Get NavMeshAgent
-        agent = GetComponent<NavMeshAgent>();
-        agent.autoRepath = true;
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        navMeshAgent.autoRepath = true;
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         // Check if Map Manager is loaded
         if (mapManager.isDoneLoading && !firstTime)
@@ -191,13 +195,12 @@ public abstract class Customer_AI : MonoBehaviour
         ShelfContainer interactShelf = TaskDestinationAsShelf();
 
         // Check if task destination is a shelf
-        if (interactShelf)
+        if (!interactShelf) return;
+        
+        // Is not holding a product in hand
+        if (!equippedItem)
         {
-            // Is not holding a product in hand
-            if (!equippedItem)
-            {
-                GetStockFromShelf(interactShelf);
-            }
+            GetStockFromShelf(interactShelf);
         }
     }
 
@@ -212,8 +215,8 @@ public abstract class Customer_AI : MonoBehaviour
         equippedItem = item.gameObject;
 
         // Get rigidbody from item and disable physics
-        Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
-        productRB.isKinematic = true;
+        Rigidbody productRigidbody = equippedItem.GetComponent<Rigidbody>();
+        productRigidbody.isKinematic = true;
 
         // Attach item to player hold position
         equippedItem.transform.SetParent(equippedPosition);
@@ -227,8 +230,8 @@ public abstract class Customer_AI : MonoBehaviour
         GameObject wasHolding = equippedItem;
 
         // Get rigidbody on item and enable physics
-        Rigidbody productRB = equippedItem.GetComponent<Rigidbody>();
-        productRB.isKinematic = false;
+        Rigidbody productRigidbody = equippedItem.GetComponent<Rigidbody>();
+        productRigidbody.isKinematic = false;
 
         // De-attach item from player and remove item from equip slot
         equippedItem.transform.SetParent(null);
@@ -242,11 +245,10 @@ public abstract class Customer_AI : MonoBehaviour
         StockTypes stockType = shelf.ShelfStockType;
         int amount = shelf.GetStock();
 
-        if (amount != 0)
-        {
-            GameObject newItem = Instantiate(mapManager.GetStockTypePrefab(stockType)) as GameObject;
-            EquipItem(newItem.transform);
-        }
+        if (amount == 0) return;
+        
+        GameObject newItem = Instantiate(mapManager.GetStockTypePrefab(stockType));
+        EquipItem(newItem.transform);
     }
 
     #endregion

@@ -3,6 +3,10 @@
 
     // Transition Functions
 
+    void ToWanderState();
+
+    void ToFollowState();
+    
     void ToGetProductState();
 
     void ToPurchaseState();

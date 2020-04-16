@@ -4,42 +4,41 @@ using UnityEngine;
 
 public class CustomerSpawner : MonoBehaviour
 {
-    [SerializeField] bool autoMode = false;
-    [SerializeField] float autoSpawnRate = 5.0f;
-    public GameObject customer = null;
+    [SerializeField] private bool autoMode;
+    [SerializeField] private float autoSpawnRate = 5.0f;
+    public GameObject customer;
 
-    GameManager gameManager = null;
+    private GameManager _gameManager;
 
-    float autoTimer = 0.0f;
+    private float _autoTimer = 0.0f;
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if (autoMode)
+        if (!autoMode) return;
+        
+        if (_autoTimer >= autoSpawnRate)
         {
-            if (autoTimer >= autoSpawnRate)
-            {
-                GameObject newCustomer = Instantiate(customer) as GameObject;
+            GameObject newCustomer = Instantiate(customer);
 
-                newCustomer.transform.position = transform.position;
+            newCustomer.transform.position = transform.position;
 
-                autoTimer = 0.0f;
-            }
-            autoTimer += Time.deltaTime;
+            _autoTimer = 0.0f;
         }
+        _autoTimer += Time.deltaTime;
     }
 
     private void Start()
     {
-        gameManager = GameManager.GetInstance();
+        _gameManager = GameManager.GetInstance();
     }
 
-    public void SpawnCustomer(GameObject customer)
+    public void SpawnCustomer(GameObject other)
     {
-        GameObject newCustomer = Instantiate(customer) as GameObject;
+        GameObject newCustomer = Instantiate(other) as GameObject;
 
         newCustomer.transform.position = transform.position;
 
-        gameManager.AddCustomer(newCustomer.transform);
+        _gameManager.AddCustomer(newCustomer.transform);
     }
 }

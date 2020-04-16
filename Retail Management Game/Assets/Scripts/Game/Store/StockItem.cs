@@ -7,7 +7,7 @@ public class StockItem : MonoBehaviour
 {
     [SerializeField] protected StockTypes stockType = StockTypes.None;
 
-    GameObject firstClaim = null;
+    private GameObject _firstClaim = null;
 
     public StockTypes GetStockType()
     {
@@ -16,21 +16,26 @@ public class StockItem : MonoBehaviour
 
     public GameObject IsClaimed()
     {
-        return firstClaim;
+        return _firstClaim;
     }
 
     public void ClaimItem(GameObject other)
     {
-        firstClaim = other;
+        _firstClaim = other;
     }
 
     public void UnclaimItem(GameObject claimer)
     {
-        if (firstClaim == claimer)
-            firstClaim = null;
+        if (_firstClaim == claimer)
+            _firstClaim = null;
         else
         {
             Debug.Log(claimer + " is not first claim of " + gameObject);
         }
+    }
+
+    public virtual StockItem TakeProduct()
+    {
+        return this;
     }
 }

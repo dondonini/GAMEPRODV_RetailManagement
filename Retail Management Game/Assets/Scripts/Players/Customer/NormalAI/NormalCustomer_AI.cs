@@ -8,12 +8,6 @@ public class NormalCustomer_AI : Customer_AI
 {
     public Tasks_AI currentTask = Tasks_AI.GetProduct;
 
-
-    [Header("Other Settings")]
-    public float stuckThreshold = 3.0f;
-    public float unstuckDuration = 3.0f;
-
-
     //************************************************************************
     // States
 
@@ -43,29 +37,28 @@ public class NormalCustomer_AI : Customer_AI
 
     private void OnDrawGizmosSelected()
     {
-        if (agent)
-        {
-            Gizmos.color = Color.black;
+        if (!navMeshAgent) return;
+        
+        Gizmos.color = Color.black;
 
-            NavMeshPath path = agent.path;
+        NavMeshPath path = navMeshAgent.path;
 
-            if (path.corners.Length > 2) //if the path has 1 or no corners, there is no need
-                for (int i = 0; i < path.corners.Length - 1; i++)
-                {
-                    Gizmos.DrawLine(path.corners[i], path.corners[i + 1]);
-                    //Gizmos.DrawSphere(path.corners[i], 0.1f);
-                }
-            else if (path.corners.Length == 2)
+        if (path.corners.Length > 2) //if the path has 1 or no corners, there is no need
+            for (int i = 0; i < path.corners.Length - 1; i++)
             {
-                Gizmos.DrawLine(path.corners[0], path.corners[1]);
+                Gizmos.DrawLine(path.corners[i], path.corners[i + 1]);
+                //Gizmos.DrawSphere(path.corners[i], 0.1f);
             }
+        else if (path.corners.Length == 2)
+        {
+            Gizmos.DrawLine(path.corners[0], path.corners[1]);
         }
     }
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    void Awake()
+    private void Awake()
     {
         getProductState = new GetProductState_NC(this);
         leavingState = new LeavingState_NC(this);

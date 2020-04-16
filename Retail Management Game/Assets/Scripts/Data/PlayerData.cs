@@ -1,9 +1,10 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public static class PlayerData
 {
-    const string saveFileExtension = ".sls";
-    const string moneyKey = "MONEY";
+    private const string SAVE_FILE_EXTENSION = ".sls";
+    private const string MONEY_KEY = "MONEY";
 
     public enum Slots
     {
@@ -13,7 +14,7 @@ public static class PlayerData
         Slot3,
     };
 
-    public static Slots currentSlot;
+    private static Slots _currentSlot;
 
     public class DataInfo
     {
@@ -23,9 +24,9 @@ public static class PlayerData
         // Current game data
         public int profit;
 
-        public DataInfo(int _m)
+        public DataInfo(int m)
         {
-            money = _m;
+            money = m;
         }
 
         public DataInfo() 
@@ -41,64 +42,66 @@ public static class PlayerData
 
     public static bool SaveSlotData()
     {
-        if (currentSlot == Slots.None)
+        if (_currentSlot == Slots.None)
         {
             Debug.LogError("No slot has been selected!");
             return false;
         }
 
-        string slotKey = currentSlot.ToString();
-        string saveFileName = slotKey + saveFileExtension;
+        string slotKey = _currentSlot.ToString();
+        string saveFileName = slotKey + SAVE_FILE_EXTENSION;
 
         // Unpack data
-        ES3.Save<int>(slotKey + moneyKey, currentInfo.money, saveFileName);
+        ES3.Save<int>(slotKey + MONEY_KEY, currentInfo.money, saveFileName);
 
         return true;
     }
 
     public static bool SaveSlotSegmentData(string key, bool value)
     {
-        if (currentSlot == Slots.None)
+        if (_currentSlot == Slots.None)
         {
             Debug.LogError("No slot has been selected!");
             return false;
         }
 
-        string slotKey = currentSlot.ToString();
-        string saveFileName = slotKey + saveFileExtension;
+        string slotKey = _currentSlot.ToString();
+        string saveFileName = slotKey + SAVE_FILE_EXTENSION;
 
         ES3.Save<bool>(slotKey + key, value, saveFileName);
 
         return true;
     }
 
-    public static void LoadSlotData(Slots _slot)
+    public static void LoadSlotData(Slots slot)
     {
         // Set the current slot
-        switch (_slot)
+        switch (slot)
         {
             case Slots.Slot1:
-                currentSlot = Slots.Slot1;
+                _currentSlot = Slots.Slot1;
                 break;
             case Slots.Slot2:
-                currentSlot = Slots.Slot2;
+                _currentSlot = Slots.Slot2;
                 break;
             case Slots.Slot3:
-                currentSlot = Slots.Slot3;
+                _currentSlot = Slots.Slot3;
                 break;
             case Slots.None:
-                currentSlot = Slots.None;
+                _currentSlot = Slots.None;
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(slot), slot, null);
         }
 
-        if (currentSlot == Slots.None)
+        if (_currentSlot == Slots.None)
         {
             Debug.LogError("No slot has been selected!");
             return;
         }
 
-        string slotKey = currentSlot.ToString();
-        string saveFileName = slotKey + saveFileExtension;
+        string slotKey = _currentSlot.ToString();
+        string saveFileName = slotKey + SAVE_FILE_EXTENSION;
 
         DataInfo newData = new DataInfo();
 
@@ -112,7 +115,7 @@ public static class PlayerData
         {
             // Unpack data
             Debug.Log("Slot save found! - Loading data...");
-            newData.money = ES3.Load<int>(slotKey + moneyKey, saveFileName);
+            newData.money = ES3.Load<int>(slotKey + MONEY_KEY, saveFileName);
         }
 
         currentInfo = null;
@@ -128,27 +131,22 @@ public static class PlayerData
 
     public static bool LoadSlotSegmentData(string key)
     {
-        if (currentSlot == Slots.None)
+        if (_currentSlot == Slots.None)
         {
             Debug.LogError("No slot has been selected!");
             return false;
         }
 
-        string slotKey = currentSlot.ToString();
-        string saveFileName = slotKey + saveFileExtension;
+        string slotKey = _currentSlot.ToString();
+        string saveFileName = slotKey + SAVE_FILE_EXTENSION;
 
-        if (!ES3.KeyExists(slotKey + key))
-        {
-            return false;
-        }
-
-        return ES3.Load<bool>(slotKey + key, saveFileName);
+        return ES3.KeyExists(slotKey + key) && ES3.Load<bool>(slotKey + key, saveFileName);
     }
 
-    public static DataInfo GetSlotInfo(Slots _slot)
+    public static DataInfo GetSlotInfo(Slots slot)
     {
-        string slotKey = _slot.ToString();
-        string saveFileName = slotKey + saveFileExtension;
+        string slotKey = slot.ToString();
+        string saveFileName = slotKey + SAVE_FILE_EXTENSION;
 
         if (!ES3.FileExists(saveFileName))
         {
@@ -158,31 +156,33 @@ public static class PlayerData
         // Build data set
         DataInfo newData = new DataInfo
         {
-            money = ES3.Load<int>(slotKey + moneyKey, saveFileName),
+            money = ES3.Load<int>(slotKey + MONEY_KEY, saveFileName),
         };
 
         return newData;
     }
 
-    public static void DeleteSlotData(Slots _slot)
+    public static void DeleteSlotData(Slots slot)
     {
-        string saveFileName = Slots.None.ToString();
+        string saveFileName;
 
         // Set the current slot
-        switch (_slot)
+        switch (slot)
         {
             case Slots.Slot1:
-                saveFileName = Slots.Slot1.ToString() + saveFileExtension;
+                saveFileName = Slots.Slot1 + SAVE_FILE_EXTENSION;
                 break;
             case Slots.Slot2:
-                saveFileName = Slots.Slot2.ToString() + saveFileExtension;
+                saveFileName = Slots.Slot2 + SAVE_FILE_EXTENSION;
                 break;
             case Slots.Slot3:
-                saveFileName = Slots.Slot3.ToString() + saveFileExtension;
+                saveFileName = Slots.Slot3 + SAVE_FILE_EXTENSION;
                 break;
             case Slots.None:
                 saveFileName = Slots.None.ToString();
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(slot), slot, null);
         }
 
         // Check slot if it exists and delete it

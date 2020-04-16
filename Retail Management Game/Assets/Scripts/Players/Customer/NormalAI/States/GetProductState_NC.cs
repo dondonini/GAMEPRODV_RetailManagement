@@ -5,9 +5,9 @@ using UnityEngine.AI;
 
 public class GetProductState_NC : GetProductState, INormalCustomer_SM
 {
-    public new NormalCustomer_AI stateMachine;
+    private new readonly NormalCustomer_AI _stateMachine;
 
-    float waitTimer = 0.0f;
+    private float _waitTimer = 0.0f;
 
     /// <summary>
     /// 
@@ -16,7 +16,7 @@ public class GetProductState_NC : GetProductState, INormalCustomer_SM
     public GetProductState_NC(NormalCustomer_AI _SM)
     {
         base.stateMachine = _SM;
-        stateMachine = _SM;
+        _stateMachine = _SM;
     }
 
     public override void StartState()
@@ -24,14 +24,14 @@ public class GetProductState_NC : GetProductState, INormalCustomer_SM
         // Reset variables
         currentAction = GetProductActions.None;
 
-        waitTimer = stateMachine.pickupDuration;
+        _waitTimer = _stateMachine.pickupDuration;
     }
 
     #region Transitions
 
     public void ToGetProductState()
     {
-        Debug.LogWarning("Cannot transition to self!", stateMachine);
+        Debug.LogWarning("Cannot transition to self!", _stateMachine);
     }
 
     public void ToLeaveStoreState()
@@ -41,12 +41,12 @@ public class GetProductState_NC : GetProductState, INormalCustomer_SM
 
     public void ToPurchaseState()
     {
-        stateMachine.currentState = stateMachine.purchaseProductState;
+        _stateMachine.currentState = _stateMachine.purchaseProductState;
     }
 
     public void ToWaitForProductState()
     {
-        stateMachine.currentState = stateMachine.waitForProductState;
+        _stateMachine.currentState = _stateMachine.waitForProductState;
     }
 
     public void ToWaitForRegisterState()
@@ -70,15 +70,15 @@ public class GetProductState_NC : GetProductState, INormalCustomer_SM
             }
             else
             {
-                if (!stateMachine.equippedItem)
+                if (!_stateMachine.equippedItem)
                 {
                     // Pick up product
-                    stateMachine.Interact();
+                    _stateMachine.Interact();
                 }
 
-                if (waitTimer > 0.0f)
+                if (_waitTimer > 0.0f)
                 {
-                    waitTimer -= Time.deltaTime;
+                    _waitTimer -= Time.deltaTime;
                 }
                 else
                 {

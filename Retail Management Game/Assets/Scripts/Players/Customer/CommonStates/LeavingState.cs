@@ -44,7 +44,7 @@ public class LeavingState : IBase_SM
 
                     if (result)
                     {
-                        stateMachine.agent.SetDestination(stateMachine.taskDestination.position);
+                        stateMachine.navMeshAgent.SetDestination(stateMachine.taskDestination.position);
 
                         currentAction = LeavingActions.Moving;
                     }
@@ -53,7 +53,7 @@ public class LeavingState : IBase_SM
                 }
             case LeavingActions.Moving:
                 {
-                    if (stateMachine.agent.remainingDistance < 2.0f)
+                    if (stateMachine.navMeshAgent.remainingDistance < 2.0f)
                     {
                         currentAction = LeavingActions.Bye;
                     }

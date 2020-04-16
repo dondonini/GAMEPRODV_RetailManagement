@@ -317,10 +317,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca5e66e8c6194774bb878d6743072258, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shelfStockType: 1
+  stock: {fileID: 0}
+  shelfStockType: 0
   stockAmount: 3
   shelfSize: 5
   playerDetectionDistance: 0.5
+  boundsOfShelf:
+    m_Center: {x: 0, y: 0.8, z: 0}
+    m_Extent: {x: 0.5, y: 0.8, z: 0.5}
   allowPickup_F: 1
   allowPickup_B: 0
   allowPickup_L: 0
@@ -403,7 +407,7 @@ PrefabInstance:
     - target: {fileID: 7662468387162153633, guid: f525f52e9d97e0d42ab5c25e5bdabdd0,
         type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 0
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: f525f52e9d97e0d42ab5c25e5bdabdd0,
         type: 3}

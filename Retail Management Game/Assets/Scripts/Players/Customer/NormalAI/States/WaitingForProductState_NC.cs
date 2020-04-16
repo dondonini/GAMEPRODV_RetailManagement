@@ -4,12 +4,12 @@ using UnityEngine;
 
 public class WaitingForProductState_NC : WaitingForProductState, INormalCustomer_SM
 {
-    public new NormalCustomer_AI stateMachine;
+    private readonly NormalCustomer_AI _stateMachine;
 
     public WaitingForProductState_NC(NormalCustomer_AI _SM)
     {
-        base.stateMachine = _SM;
         stateMachine = _SM;
+        _stateMachine = _SM;
     }
     
     #region Transition
@@ -21,12 +21,12 @@ public class WaitingForProductState_NC : WaitingForProductState, INormalCustomer
 
     public void ToLeaveStoreState()
     {
-        stateMachine.currentState = stateMachine.leavingState;
+        _stateMachine.currentState = _stateMachine.leavingState;
     }
 
     public void ToPurchaseState()
     {
-        stateMachine.currentState = stateMachine.purchaseProductState;
+        _stateMachine.currentState = _stateMachine.purchaseProductState;
     }
 
     public void ToWaitForProductState()

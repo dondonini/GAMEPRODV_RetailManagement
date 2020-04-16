@@ -1,25 +1,30 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class MapManager : MonoBehaviour
 {
-    [Header("Found Shelves")]
-    [SerializeField] List<ShelfContainer> shelvingUnits = new List<ShelfContainer>();
-    [SerializeField] List<StockTypes> stockTypesAvailable = new List<StockTypes>();
+    [SerializeField] 
+    private float dataUpdateFreq = 2.5f;
+    
+    [Header("Found Shelves")] [SerializeField]
+    private List<ShelfContainer> shelvingUnits = new List<ShelfContainer>();
 
-    [Header("Found Registers")]
-    [SerializeField] List<CashRegister> cashRegisters = new List<CashRegister>();
+    [SerializeField] private List<StockTypes> stockTypesAvailable = new List<StockTypes>();
 
-    [Header("Found Customer Spawners")]
-    [SerializeField] List<CustomerSpawner> customerSpawners = new List<CustomerSpawner>();
+    [Header("Found Registers")] [SerializeField]
+    private List<CashRegister> cashRegisters = new List<CashRegister>();
 
-    [Header("Found Exit Points")]
-    [SerializeField] List<Transform> exitPoints = new List<Transform>();
+    [Header("Found Customer Spawners")] [SerializeField]
+    private List<CustomerSpawner> customerSpawners = new List<CustomerSpawner>();
 
-    [Header("Trucks")]
-    [SerializeField] List<TruckDriver> trucks = new List<TruckDriver>();
+    [Header("Found Exit Points")] [SerializeField]
+    private List<Transform> exitPoints = new List<Transform>();
+
+    [Header("All Product Instances")] [SerializeField]
+    private List<GameObject> itemInstances = new List<GameObject>();
+
+    [Header("Trucks")] [SerializeField] 
+    private List<TruckDriver> trucks = new List<TruckDriver>();
 
     [Header("Prefabs")]
     public StockData[] stockPrefabs;
@@ -28,51 +33,53 @@ public class MapManager : MonoBehaviour
     public UnlockSegment[] unlockableSegments;
 
     // Loading Stats
-    [ReadOnly] public bool isDoneLoading = false;
+    [ReadOnly] public bool isDoneLoading;
     [HideInInspector]
     public string currentLoadingTask = "";
     [HideInInspector]
-    public float finishedPercentage = 0.0f;
-    int tasksToDo = 0;
-    int tasksDone = 0;
+    public float finishedPercentage;
 
-    static MapManager instance = null;
+    private int _tasksToDo;
+    private int _tasksDone;
+
+    private static MapManager _instance;
+
+    private float _updateWaitTime = 0.0f;
 
     private void OnValidate()
     {
-        if (tasksToDo != 0)
-            finishedPercentage = tasksDone / tasksToDo;
+        if (_tasksToDo != 0)
+            finishedPercentage = (float)_tasksDone / _tasksToDo;
 
         UpdateSegments();
     }
 
     private void Awake()
     {
-        instance = this;
+        _instance = this;
     }
 
     public static MapManager GetInstance()
     {
-        return instance;
+        return _instance;
     }
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         LoadMap();
     }
 
-    void LoadMap()
+    private void LoadMap()
     {
         UpdateSegments();
 
         //************************************************************************/
         currentLoadingTask = "Collecting shelves...";
 
-        GameObject[] foundShelves;
-        foundShelves = GameObject.FindGameObjectsWithTag("Shelf");
+        GameObject[] foundShelves = GameObject.FindGameObjectsWithTag("Shelf");
 
-        tasksToDo = foundShelves.Length;
+        _tasksToDo = foundShelves.Length;
 
         //************************************************************************/
         currentLoadingTask = "Validating shelves...";
@@ -94,7 +101,7 @@ public class MapManager : MonoBehaviour
                 Debug.LogWarning("Shelf \"" + shelf + "\" is tagged as a shelf, but doesn't have a ShelfContainer compnent!");
             }
 
-            tasksDone++;
+            _tasksDone++;
         }
 
         shelvingUnits.AddRange(validShelves);
@@ -144,10 +151,9 @@ public class MapManager : MonoBehaviour
         //************************************************************************/
         currentLoadingTask = "Collecting registers...";
 
-        GameObject[] foundRegisters;
-        foundRegisters = GameObject.FindGameObjectsWithTag("Register");
+        GameObject[] foundRegisters = GameObject.FindGameObjectsWithTag("Register");
 
-        tasksToDo = foundRegisters.Length;
+        _tasksToDo = foundRegisters.Length;
 
         //************************************************************************/
         currentLoadingTask = "Validating registers...";
@@ -169,7 +175,7 @@ public class MapManager : MonoBehaviour
                 Debug.LogWarning("Register \"" + register + "\" is tagged as a Register, but doesn't have a CashRegister compnent!");
             }
 
-            tasksDone++;
+            _tasksDone++;
         }
 
         cashRegisters.AddRange(validRegisters);
@@ -177,23 +183,23 @@ public class MapManager : MonoBehaviour
         //************************************************************************/
         currentLoadingTask = "Collecting customer spawn locations...";
 
-        GameObject[] temp_CustomerSpawner = GameObject.FindGameObjectsWithTag("CustomerSpawn");
+        GameObject[] tempCustomerSpawner = GameObject.FindGameObjectsWithTag("CustomerSpawn");
 
-        for (int customerSpawner = 0; customerSpawner < temp_CustomerSpawner.Length; customerSpawner++)
+        for (int customerSpawner = 0; customerSpawner < tempCustomerSpawner.Length; customerSpawner++)
         {
-            if (customerSpawners.Contains(temp_CustomerSpawner[customerSpawner].GetComponent<CustomerSpawner>())) continue;
-            customerSpawners.Add(temp_CustomerSpawner[customerSpawner].GetComponent<CustomerSpawner>());
+            if (customerSpawners.Contains(tempCustomerSpawner[customerSpawner].GetComponent<CustomerSpawner>())) continue;
+            customerSpawners.Add(tempCustomerSpawner[customerSpawner].GetComponent<CustomerSpawner>());
         }
 
         //************************************************************************/
         currentLoadingTask = "Collecting exit points...";
 
-        GameObject[] temp_ExitPoints = GameObject.FindGameObjectsWithTag("MapExitPoint");
+        GameObject[] tempExitPoints = GameObject.FindGameObjectsWithTag("MapExitPoint");
 
-        for (int point = 0; point < temp_ExitPoints.Length; point++)
+        for (int point = 0; point < tempExitPoints.Length; point++)
         {
-            if (exitPoints.Contains(temp_ExitPoints[point].transform)) continue;
-            exitPoints.Add(temp_ExitPoints[point].transform);
+            if (exitPoints.Contains(tempExitPoints[point].transform)) continue;
+            exitPoints.Add(tempExitPoints[point].transform);
         }
 
         LoadPlayerData();
@@ -201,7 +207,7 @@ public class MapManager : MonoBehaviour
         isDoneLoading = true;
     }
 
-    bool LoadPlayerData()
+    private bool LoadPlayerData()
     {
         if (unlockableSegments.Length == 0) return false;
 
@@ -221,9 +227,30 @@ public class MapManager : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
+        if (_updateWaitTime >= dataUpdateFreq)
+        {
+            UpdateData();
+            
+            // Reset timer
+            _updateWaitTime = 0.0f;
+        }
+
+        _updateWaitTime += Time.deltaTime;
+    }
+
+    private void UpdateData()
+    {
+        // Get all items
+        List<GameObject> instances = new List<GameObject>();
+        instances.AddRange(GameObject.FindGameObjectsWithTag("Product"));
+        instances.AddRange(GameObject.FindGameObjectsWithTag("StockCrate"));
         
+        // Replace lists
+        itemInstances.Clear();
+        itemInstances = instances;
+
     }
 
     public ShelfContainer GetRandomShelvingUnit(StockTypes selectedType = StockTypes.None)
@@ -231,10 +258,7 @@ public class MapManager : MonoBehaviour
         // Check if there are shelves in the map
         if (shelvingUnits.Count == 0)
         {
-            if (!isDoneLoading)
-                Debug.LogWarning("MapManager is not done loading!");
-            else
-                Debug.LogWarning("There are no shelves in the map!");
+            Debug.LogWarning(!isDoneLoading ? "MapManager is not done loading!" : "There are no shelves in the map!");
 
             return null;
         }
@@ -284,16 +308,11 @@ public class MapManager : MonoBehaviour
 
     public CashRegister GetRandomCashRegister()
     {
-        if (cashRegisters.Count == 0)
-        {
-            if (!isDoneLoading)
-                Debug.LogWarning("MapManager is not done loading!");
-            else
-                Debug.LogWarning("There are no registers in the map!");
-            return null;
-        }
+        if (cashRegisters.Count != 0) return EssentialFunctions.GetRandomFromArray(cashRegisters);
 
-        return EssentialFunctions.GetRandomFromArray(cashRegisters);
+        Debug.LogWarning(!isDoneLoading ? "MapManager is not done loading!" : "There are no registers in the map!");
+        return null;
+
     }
 
     public TruckDriver GetRandomTruck()
@@ -329,6 +348,19 @@ public class MapManager : MonoBehaviour
     public ShelfContainer[] GetShelvingUnits()
     {
         return shelvingUnits.ToArray();
+    }
+
+    public GameObject[] GetAllItemInstances()
+    {
+        // Remove missing items
+        for (int i = 0; i < itemInstances.Count; i++)
+        {
+            if (itemInstances[i]) continue;
+            
+            itemInstances.RemoveAt(i);
+        }
+        
+        return itemInstances.ToArray();
     }
 
     /// <summary>
@@ -437,7 +469,7 @@ public class MapManager : MonoBehaviour
         UpdateSegments(GetSegment(segmentKey));
     }
 
-    void UpdateSegments()
+    private void UpdateSegments()
     {
         // Check unlockable list for enabled segments
         for (int i = 0; i < unlockableSegments.Length; i++)
@@ -446,7 +478,7 @@ public class MapManager : MonoBehaviour
         }
     }
 
-    UnlockSegment GetSegment(string segmentKey)
+    private UnlockSegment GetSegment(string segmentKey)
     {
         for (int i = 0; i < unlockableSegments.Length; i++)
         {
@@ -456,7 +488,7 @@ public class MapManager : MonoBehaviour
         return null;
     }
 
-    void UpdateSegments(UnlockSegment selectedSegment)
+    private void UpdateSegments(UnlockSegment selectedSegment)
     {
         if (selectedSegment.IsEnabled())
         {

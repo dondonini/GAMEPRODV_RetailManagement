@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,15 +10,16 @@ public class PurchaseState : IBase_SM
 
     protected float patienceTimer = 0.0f;
     protected float waitTime;
-    Vector3 targetRot;
-    protected readonly float marginOfErrorAmount = 0.01f;
+    private Vector3 _targetRot;
+    private const float MARGIN_OF_ERROR_AMOUNT = 0.01f;
     protected PurchaseActions currentAction = PurchaseActions.None;
-    protected Quaternion angularVelocity;
+    private Quaternion _angularVelocity;
     protected CashRegister register;
 
     protected bool isDonePurchasing = false;
+    private static readonly int show = Animator.StringToHash("Show");
 
-    public enum PurchaseActions
+    protected enum PurchaseActions
     {
         None,
         Moving,
@@ -40,15 +42,14 @@ public class PurchaseState : IBase_SM
 
         waitTime = stateMachine.purchaseDuration;
 
-        stateMachine.patienceBillboard.gameObject.SetActive(true);
-        stateMachine.patienceAnimator.SetBool("Show", false);
-        stateMachine.patienceBillboard.gameObject.SetActive(false);
+        stateMachine.billboardCanvas.gameObject.SetActive(true);
+        stateMachine.patienceAnimator.SetBool(show, false);
+        stateMachine.billboardAnimator.SetBool(show, false);
     }
 
     public virtual void ExitState()
     {
-        stateMachine.patienceAnimator.SetBool("Show", false);
-        stateMachine.patienceBillboard.gameObject.SetActive(false);
+        stateMachine.patienceAnimator.SetBool(show, false);
     }
 
     public virtual void UpdateState()
@@ -80,7 +81,7 @@ public class PurchaseState : IBase_SM
 
                     if (result)
                     {
-                        stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
+                        stateMachine.navMeshAgent.SetDestination(stateMachine.taskDestinationPosition);
                         currentAction = PurchaseActions.Moving;
                     }
                     break;
@@ -89,13 +90,14 @@ public class PurchaseState : IBase_SM
             // Walking to destination
             case PurchaseActions.Moving:
                 {
+                    // Hide patients
+                    stateMachine.billboardAnimator.SetBool(show, false);
+                    
                     // Remove patience indicator
-                    stateMachine.patienceBillboard.gameObject.SetActive(true);
-                    stateMachine.patienceAnimator.SetBool("Show", false);
-                    stateMachine.patienceBillboard.gameObject.SetActive(false);
+                    stateMachine.patienceAnimator.SetBool(show, false);
 
                     // Change action state when close to the destination
-                    if (stateMachine.agent.remainingDistance < stateMachine.maxPickupDistance)
+                    if (stateMachine.navMeshAgent.remainingDistance < stateMachine.maxPickupDistance)
                     {
                         currentAction = PurchaseActions.Turning;
                     }
@@ -106,56 +108,55 @@ public class PurchaseState : IBase_SM
             case PurchaseActions.Turning:
                 {
                     // Calculate direction to target
-                    Vector3 target;
                     int rank = register.GetCustomerQueueRank(stateMachine.gameObject);
 
-                    if (rank != 0)
-                    {
-                        target = register.GetFrontOfLinePosition();
-                    }
-                    else
-                    {
-                        target = stateMachine.taskDestination.position;
-                    }
+                    var target = rank != 0 ? register.GetFrontOfLinePosition() : stateMachine.taskDestination.position;
 
-                    float fromToDelta = EssentialFunctions.RotateTowardsTargetSmoothDamp(stateMachine.transform, target, ref angularVelocity, stateMachine.rotationSpeed);
+                    float fromToDelta = EssentialFunctions.RotateTowardsTargetSmoothDamp(stateMachine.transform,
+                        target,
+                        ref _angularVelocity,
+                        stateMachine.rotationSpeed);
 
                     // Stop rotation if angle between target and forward vector is lower than margin of error
-                    if (fromToDelta <= marginOfErrorAmount)
+                    if (fromToDelta <= MARGIN_OF_ERROR_AMOUNT)
                         currentAction = PurchaseActions.Queuing;
 
                     break;
                 }
+            case PurchaseActions.Queuing:
+                break;
+            case PurchaseActions.Purchasing:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
-    bool SetupDestination()
+    private bool SetupDestination()
     {
         // Grab random shelf component on map with wanted product 
         register = stateMachine.mapManager.GetRandomCashRegister();
 
-        if (register)
-        {
-            // Get shelf transform
-            stateMachine.taskDestination = register.transform;
+        if (!register) return false;
+        
+        // Get shelf transform
+        stateMachine.taskDestination = register.transform;
 
-            // Get pickup position
-            stateMachine.taskDestinationPosition = register.AddToQueue(stateMachine.gameObject);
+        // Get pickup position
+        stateMachine.taskDestinationPosition = register.AddToQueue(stateMachine.gameObject);
 
-            // Attach queue change event
-            register.QueueChanged.AddListener(QueueChanged);
-            register.CustomerCashedOut.AddListener(CashingOut);
+        // Attach queue change event
+        register.QueueChanged.AddListener(QueueChanged);
+        register.CustomerCashedOut.AddListener(CashingOut);
 
-            return true;
-        }
-        return false;
+        return true;
     }
 
     protected void QueueChanged()
     {
         stateMachine.taskDestinationPosition = register.GetCustomerQueuePostion(stateMachine.gameObject);
 
-        stateMachine.agent.SetDestination(stateMachine.taskDestinationPosition);
+        stateMachine.navMeshAgent.SetDestination(stateMachine.taskDestinationPosition);
 
         currentAction = PurchaseActions.Moving;
     }

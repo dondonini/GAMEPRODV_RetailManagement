@@ -20,14 +20,16 @@ public class WaitingForProductState : IBase_SM
         // Attach collisions
         stateMachine.colliderEvents.OnCollisionEnter_UE.AddListener(OnCollisionEnter_UE);
 
-        GameObject model = Object.Instantiate(stateMachine.mapManager.GetStockTypePrefab(stateMachine.currentWantedProduct)) as GameObject;
+        GameObject model =
+            Object.Instantiate(stateMachine.mapManager.GetStockTypePrefab(stateMachine.currentWantedProduct),
+                stateMachine.infoHalo,
+                true);
 
         // Remove physics
-        Rigidbody rb = model.GetComponent<Rigidbody>();
-        rb.isKinematic = true;
+        Rigidbody rigidbody = model.GetComponent<Rigidbody>();
+        rigidbody.isKinematic = true;
 
         // Move model to info halo position
-        model.transform.SetParent(stateMachine.infoHalo);
         model.transform.position = stateMachine.infoHalo.position;
 
         // Disable all scripts on model
